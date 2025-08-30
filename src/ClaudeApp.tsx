@@ -305,10 +305,32 @@ function ClaudeApp() {
     return PublishService.validatePageName(name);
   };
 
-  // 初始化已发布页面列表
+  // 初始化已发布页面列表和API设置
   useEffect(() => {
     setPublishedPages(PublishService.getPublishedPages());
+    
+    // 从 localStorage 读取 API 设置
+    const savedApiKey = localStorage.getItem('claude-api-key');
+    const savedUseClaudeAPI = localStorage.getItem('use-claude-api') === 'true';
+    
+    if (savedApiKey) {
+      setApiKey(savedApiKey);
+    }
+    if (savedUseClaudeAPI) {
+      setUseClaudeAPI(savedUseClaudeAPI);
+    }
   }, []);
+
+  // 保存API设置到localStorage
+  useEffect(() => {
+    if (apiKey) {
+      localStorage.setItem('claude-api-key', apiKey);
+    }
+  }, [apiKey]);
+
+  useEffect(() => {
+    localStorage.setItem('use-claude-api', useClaudeAPI.toString());
+  }, [useClaudeAPI]);
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
