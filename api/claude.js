@@ -15,7 +15,7 @@ export default async function handler(request, response) {
   }
 
   try {
-    const { messages, model = 'claude-3-sonnet-20240229', max_tokens = 1000 } = request.body;
+    const { messages, model = 'claude-3-5-sonnet-20241022', max_tokens = 1000 } = request.body;
     const apiKey = process.env.VITE_CLAUDE_API_KEY;
     
     if (!apiKey) {
