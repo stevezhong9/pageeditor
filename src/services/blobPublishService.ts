@@ -441,7 +441,7 @@ export class BlobPublishService {
                 margin-right: auto;
             ">${layout.hero?.subhead || '为您提供最优质的服务体验'}</p>
             
-            <button onclick="handleProductCTAClick()" style="
+            <button onclick="${productUrl ? `window.open('${productUrl}', '_blank'); console.log('Opening: ${productUrl}');` : `alert('感谢您的关注！这是由 PageEditor 生成的导购页面。');`}" style="
                 background: ${layout.hero?.ctaColor || brandConfig.colors.primary};
                 color: white;
                 border: none;
@@ -505,16 +505,7 @@ export class BlobPublishService {
     <script>
         ${jsContent}
         
-        // 页面特定功能 - 产品CTA处理
-        function handleProductCTAClick() {${
-            productUrl ? 
-            `
-            window.open('${productUrl}', '_blank');
-            console.log('Redirecting to product page:', '${productUrl}');` : `
-            alert('感谢您的关注！这是由 PageEditor 生成的导购页面。');
-            console.log('CTA clicked on page:', '${pageName}');`
-        }
-        }
+        // 页面特定功能已内联到按钮onclick中
         
         // 图片画廊功能
         let currentImageIndex = 0;
