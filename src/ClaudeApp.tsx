@@ -136,7 +136,20 @@ function ClaudeApp() {
       content: userMessage,
       timestamp: Date.now()
     };
-    setMessages(prev => [...prev, userMsg]);
+    
+    try {
+      setMessages(prev => {
+        if (!Array.isArray(prev)) {
+          console.error('Messages state is corrupted when adding user message, resetting');
+          return [userMsg];
+        }
+        return [...prev, userMsg];
+      });
+    } catch (stateError) {
+      console.error('Failed to add user message:', stateError);
+      // This is critical - if we can't add user message, reset and try again
+      setMessages([userMsg]);
+    }
     
     try {
       let patches: PatchOperation[];
@@ -161,6 +174,9 @@ function ClaudeApp() {
         }
         
         // Use real Claude API
+        if (!claudeService) {
+          throw new Error('Claude服务初始化失败');
+        }
         patches = await claudeService.generatePatches(userMessage, pageData);
         responseContent = `✨ Claude AI 已根据您的要求完成修改：\n\n`;
       } else {
@@ -173,8 +189,17 @@ function ClaudeApp() {
         console.log('Applying patches:', patches);
         
         // Apply patches to page data
-        const result = applyPatch({ ...pageData }, patches);
-        setPageData(result.newDocument);
+        try {
+          const result = applyPatch({ ...pageData }, patches);
+          if (result.newDocument) {
+            setPageData(result.newDocument);
+          } else {
+            throw new Error('应用补丁失败：返回了无效的数据结构');
+          }
+        } catch (patchError) {
+          console.error('Patch application failed:', patchError);
+          throw new Error('应用页面修改失败: ' + (patchError instanceof Error ? patchError.message : '未知错误'));
+        }
         
         // Describe what was changed
         const changes = patches.map((patch: any) => {
@@ -196,9 +221,22 @@ function ClaudeApp() {
           role: 'assistant',
           content: responseContent,
           timestamp: Date.now(),
-          patches
+          patches: patches || []
         };
-        setMessages(prev => [...prev, assistantMsg]);
+        
+        // Safely update messages state
+        try {
+          setMessages(prev => {
+            if (!Array.isArray(prev)) {
+              console.error('Messages state is corrupted, resetting');
+              return [assistantMsg];
+            }
+            return [...prev, assistantMsg];
+          });
+        } catch (stateError) {
+          console.error('Failed to update messages state:', stateError);
+          throw new Error('状态更新失败: 无法添加助手回复');
+        }
         
       } else {
         // No patches generated
@@ -210,7 +248,18 @@ function ClaudeApp() {
             : '抱歉，我没有理解您的修改要求。请尝试这些指令：\n\n• "把标题改得更吸引人"\n• "添加一个环保相关的卖点"\n• "把按钮改成立即购买"\n• "修改副标题"',
           timestamp: Date.now()
         };
-        setMessages(prev => [...prev, assistantMsg]);
+        try {
+          setMessages(prev => {
+            if (!Array.isArray(prev)) {
+              console.error('Messages state is corrupted, resetting');
+              return [assistantMsg];
+            }
+            return [...prev, assistantMsg];
+          });
+        } catch (stateError) {
+          console.error('Failed to update messages state:', stateError);
+          throw new Error('状态更新失败: 无法添加助手回复');
+        }
       }
       
     } catch (error) {
@@ -221,7 +270,19 @@ function ClaudeApp() {
         content: `❌ 处理失败: ${error instanceof Error ? error.message : '未知错误'}\n\n${useClaudeAPI ? '请检查API Key是否正确，或切换到模拟模式继续体验。' : ''}`,
         timestamp: Date.now()
       };
-      setMessages(prev => [...prev, errorMsg]);
+      try {
+        setMessages(prev => {
+          if (!Array.isArray(prev)) {
+            console.error('Messages state is corrupted during error handling, resetting');
+            return [errorMsg];
+          }
+          return [...prev, errorMsg];
+        });
+      } catch (stateError) {
+        console.error('Failed to update messages state during error handling:', stateError);
+        // Reset messages state as last resort
+        setMessages([errorMsg]);
+      }
     }
     
     setIsProcessing(false);
