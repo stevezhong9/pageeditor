@@ -1,0 +1,291 @@
+export default async function handler(request, response) {
+  // Enable CORS
+  response.setHeader('Access-Control-Allow-Origin', '*');
+  response.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  response.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  // Handle preflight requests
+  if (request.method === 'OPTIONS') {
+    return response.status(200).end();
+  }
+
+  // Only allow POST requests
+  if (request.method !== 'POST') {
+    return response.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    console.log('📥 Analyze browser content request received');
+    
+    const { url, content, title, images } = request.body || {};
+
+    // Validate input
+    if (!content || typeof content !== 'string') {
+      return response.status(400).json({ 
+        error: '页面内容不能为空' 
+      });
+    }
+
+    if (!url || typeof url !== 'string') {
+      return response.status(400).json({ 
+        error: '页面URL不能为空' 
+      });
+    }
+
+    console.log('🌐 Processing browser-extracted content');
+    console.log('📄 Content length:', content.length);
+    console.log('🖼️ Images provided:', images?.length || 0);
+
+    // Clean and process the content
+    const cleanedContent = cleanBrowserContent(content);
+    
+    if (cleanedContent.length < 50) {
+      return response.status(400).json({
+        error: '提取的内容太少，请确保页面完全加载后再试'
+      });
+    }
+
+    // Use AI to analyze the browser-extracted content
+    const analysisResult = await analyzeContentWithAI(cleanedContent, url, title, images);
+    
+    if (!analysisResult.success) {
+      throw new Error(analysisResult.error || 'AI分析失败');
+    }
+
+    // Process product images if provided
+    let processedImages = [];
+    if (images && images.length > 0) {
+      console.log('🖼️ Processing browser-extracted images:', images.length);
+      try {
+        const imageResponse = await fetch(new URL('/api/store-product-images', request.url).href, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            imageUrls: images.slice(0, 3), // Limit to first 3 images
+            productId: `product_${Date.now()}`
+          })
+        });
+        
+        if (imageResponse.ok) {
+          const imageResult = await imageResponse.json();
+          if (imageResult.success) {
+            processedImages = imageResult.images;
+            console.log('✅ Images processed successfully:', processedImages.length);
+          }
+        }
+      } catch (imageError) {
+        console.error('⚠️ Image processing failed:', imageError);
+        // Continue without images
+      }
+    }
+
+    // Finalize page data with processed images
+    const finalPageData = analysisResult.pageData;
+    if (processedImages.length > 0 && processedImages[0].blobUrl) {
+      finalPageData.hero.image = processedImages[0].blobUrl;
+    }
+
+    console.log('✅ Browser content analysis successful');
+
+    return response.status(200).json({
+      success: true,
+      pageData: finalPageData,
+      extractedInfo: {
+        url: url,
+        textLength: cleanedContent.length,
+        imageCount: processedImages.length,
+        originalImages: images?.length || 0,
+        title: title || '未提供'
+      },
+      processedImages,
+      message: '浏览器内容分析完成'
+    });
+
+  } catch (error) {
+    console.error('❌ Browser content analysis error:', error);
+    return response.status(500).json({
+      error: 'Failed to analyze browser content: ' + error.message
+    });
+  }
+}
+
+/**
+ * Clean and prepare browser-extracted content
+ */
+function cleanBrowserContent(content) {
+  // Remove excessive whitespace and clean up
+  let cleaned = content
+    .replace(/\s+/g, ' ')
+    .replace(/\n+/g, '\n')
+    .trim();
+
+  // Remove common noise but preserve product information
+  const noisePatterns = [
+    /登录|注册|购物车|客服中心|帮助中心|意见反馈/g,
+    /热门搜索|猜你喜欢|为你推荐|相关推荐/g,
+    /分享到|收藏|关注店铺|立即关注/g,
+    /免费注册|新人专享|领取优惠券/g,
+    /网站导航|首页|我的淘宝|购物车|收藏夹/g
+  ];
+
+  for (const pattern of noisePatterns) {
+    cleaned = cleaned.replace(pattern, ' ');
+  }
+
+  // Ensure we don't exceed processing limits
+  return cleaned.slice(0, 8000);
+}
+
+/**
+ * Use AI to analyze browser-extracted content
+ */
+async function analyzeContentWithAI(content, url, title, images) {
+  try {
+    const apiKey = process.env.VITE_CLAUDE_API_KEY;
+    
+    if (!apiKey) {
+      console.log('⚠️ No Claude API key, using fallback generation');
+      return generateBrowserFallbackAnalysis(content, url, title);
+    }
+
+    const prompt = `请分析以下从浏览器提取的商品页面内容，生成专业的导购页面数据。
+
+网页URL: ${url}
+页面标题: ${title || '未提供'}
+页面内容: ${content}
+图片数量: ${images?.length || 0} 张
+
+请返回以下JSON格式的数据:
+{
+  "pageData": {
+    "hero": {
+      "headline": "吸引人的商品标题（不超过50字）",
+      "subhead": "商品描述或卖点说明（不超过100字）", 
+      "cta": "立即购买",
+      "ctaColor": "#f97316",
+      "image": null
+    },
+    "usps": [
+      {"icon": "✨", "text": "商品特点1"},
+      {"icon": "🏆", "text": "商品特点2"},
+      {"icon": "💫", "text": "商品特点3"}
+    ]
+  },
+  "productInfo": {
+    "title": "提取的商品名称",
+    "price": "价格信息（如果有）",
+    "brand": "品牌信息（如果有）",
+    "description": "商品描述"
+  }
+}
+
+要求:
+1. 从内容中准确提取商品名称、价格、品牌、特点
+2. 生成简洁有力的标题，突出商品核心价值
+3. 描述要专业且吸引人，突出商品优势
+4. 提取3-5个核心卖点，配合适的emoji图标
+5. 根据商品类型选择合适图标：护肤品用✨💧🌟，电子产品用🔥⚡📱，食品用🍎🌱💚，服装用👔✨🎨
+6. 只返回JSON数据，不要其他说明文字`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      const content = result.content?.[0]?.text;
+      
+      if (content) {
+        // Try to parse JSON from Claude response
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const analysisResult = JSON.parse(jsonMatch[0]);
+          console.log('✅ AI analysis completed successfully');
+          return {
+            success: true,
+            pageData: analysisResult.pageData,
+            productInfo: analysisResult.productInfo
+          };
+        }
+      }
+    }
+
+    console.log('⚠️ Claude API request failed, using fallback');
+    return generateBrowserFallbackAnalysis(content, url, title);
+
+  } catch (error) {
+    console.error('AI analysis failed:', error);
+    return generateBrowserFallbackAnalysis(content, url, title);
+  }
+}
+
+/**
+ * Generate fallback analysis for browser content
+ */
+function generateBrowserFallbackAnalysis(content, url, title) {
+  console.log('🔄 Using browser fallback analysis');
+  
+  const contentLower = content.toLowerCase();
+  
+  // Determine product category
+  let categoryIcons = ['✨', '🚀', '🏆'];
+  let categoryName = '优质商品';
+  
+  if (contentLower.includes('护肤') || contentLower.includes('美容') || contentLower.includes('化妆')) {
+    categoryIcons = ['✨', '💧', '🌟'];
+    categoryName = '美容护肤';
+  } else if (contentLower.includes('电子') || contentLower.includes('手机') || contentLower.includes('数码')) {
+    categoryIcons = ['🔥', '⚡', '📱'];
+    categoryName = '数码产品';
+  } else if (contentLower.includes('食品') || contentLower.includes('零食') || contentLower.includes('营养')) {
+    categoryIcons = ['🍎', '🌱', '💚'];
+    categoryName = '健康食品';
+  } else if (contentLower.includes('服装') || contentLower.includes('衣服') || contentLower.includes('时尚')) {
+    categoryIcons = ['👔', '✨', '🎨'];
+    categoryName = '时尚服装';
+  }
+
+  // Try to extract meaningful product info
+  const sentences = content.split(/[。！？\n]/).filter(s => s.trim().length > 10 && s.trim().length < 200);
+  const productTitle = title || sentences[0]?.trim() || `精选${categoryName}推荐`;
+  const description = sentences.slice(1, 3).join('。').trim() || `优质${categoryName}，品质保证，用户信赖的选择。`;
+
+  // Try to extract price
+  const priceMatch = content.match(/[¥￥]\s*[\d,]+\.?\d*/);
+  const price = priceMatch ? priceMatch[0] : '';
+
+  return {
+    success: true,
+    pageData: {
+      hero: {
+        headline: productTitle.length > 50 ? productTitle.slice(0, 50) + '...' : productTitle,
+        subhead: description.length > 100 ? description.slice(0, 100) + '...' : description,
+        cta: '立即购买',
+        ctaColor: '#f97316',
+        image: null
+      },
+      usps: [
+        { icon: categoryIcons[0], text: '精选品质，值得信赖' },
+        { icon: categoryIcons[1], text: '快速配送，售后保障' },
+        { icon: categoryIcons[2], text: '用户好评，口碑推荐' }
+      ]
+    },
+    productInfo: {
+      title: productTitle,
+      price: price,
+      description: description
+    }
+  };
+}

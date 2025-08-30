@@ -83,81 +83,7 @@ function ClaudeApp() {
     forceScrollbarVisibility();
   }, []);
 
-  // Handle bookmarklet data
-  useEffect(() => {
-    // Listen for postMessage from bookmarklet
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data && event.data.type === 'PAGEEDITOR_DATA') {
-        const data = event.data.data;
-        console.log('Received bookmarklet data:', data);
-        
-        // Fill form with extracted data
-        if (data.content) {
-          setProductContent(data.content);
-        }
-        if (data.url) {
-          setSourceUrl(data.url);
-        }
-        if (data.images && data.images.length > 0) {
-          setImageUrls(data.images.join('\n'));
-        }
-        
-        // Show success message
-        const successMsg: ChatMessage = {
-          id: Date.now().toString(),
-          role: 'assistant',
-          content: `🎉 已接收来自书签工具的商品数据！\n\n📄 文本内容: ${data.content ? Math.min(data.content.length, 500) + '...' : '无'}\n🖼️ 图片: ${data.images ? data.images.length : 0} 张\n🔗 来源: ${data.url || '未知'}\n\n您可以编辑内容后点击"智能生成导购页"。`,
-          timestamp: Date.now()
-        };
-        setMessages(prev => [...prev, successMsg]);
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    
-    // Check localStorage for bookmarklet data
-    const checkStoredData = () => {
-      try {
-        const storedData = localStorage.getItem('pageeditor_extracted_data');
-        if (storedData) {
-          const data = JSON.parse(storedData);
-          console.log('Found stored bookmarklet data:', data);
-          
-          // Fill form with stored data
-          if (data.content) {
-            setProductContent(data.content);
-          }
-          if (data.url) {
-            setSourceUrl(data.url);
-          }
-          if (data.images && data.images.length > 0) {
-            setImageUrls(data.images.join('\n'));
-          }
-          
-          // Show success message
-          const successMsg: ChatMessage = {
-            id: Date.now().toString(),
-            role: 'assistant',
-            content: `🎉 已加载书签工具提取的商品数据！\n\n📄 文本内容: ${data.content ? Math.min(data.content.length, 500) + '...' : '无'}\n🖼️ 图片: ${data.images ? data.images.length : 0} 张\n🔗 来源: ${data.url || '未知'}\n\n您可以编辑内容后点击"智能生成导购页"。`,
-            timestamp: Date.now()
-          };
-          setMessages(prev => [successMsg]);
-          
-          // Clear stored data
-          localStorage.removeItem('pageeditor_extracted_data');
-        }
-      } catch (e) {
-        console.error('Error parsing stored bookmarklet data:', e);
-      }
-    };
-
-    // Check for stored data on mount
-    checkStoredData();
-    
-    return () => {
-      window.removeEventListener('message', handleMessage);
-    };
-  }, []);
+  // Cleanup: removed bookmarklet handling since we now use direct browser content extraction
 
   // Test function to add multiple messages (for testing scroll)
   const addTestMessages = () => {
@@ -492,7 +418,7 @@ function ClaudeApp() {
     return BlobPublishService.validatePageName(name);
   };
 
-  // 处理商品网址生成导购页 - 全自动流程
+  // 处理商品网址生成导购页 - 使用浏览器内容提取
   const handleGenerateFromUrl = async () => {
     if (!productUrl.trim()) return;
     
@@ -506,46 +432,90 @@ function ClaudeApp() {
       const processingMsg: ChatMessage = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: `🔍 正在智能分析商品页面: ${url.href}\n\n🌐 步骤1: 抓取网页内容\n🤖 步骤2: AI提取商品信息\n🖼️ 步骤3: 处理商品图片\n📄 步骤4: 生成导购页面`,
+        content: `🔍 正在智能分析商品页面: ${url.href}\n\n🌐 步骤1: 在新窗口打开商品页面\n📄 步骤2: 从浏览器提取页面内容\n🤖 步骤3: AI分析商品信息\n🖼️步骤4: 处理商品图片\n✨ 步骤5: 生成导购页面`,
         timestamp: Date.now()
       };
       setMessages(prev => [...prev, processingMsg]);
 
-      // 调用前端网页抓取和AI分析API
-      const response = await fetch('/api/scrape-and-analyze', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          url: productUrl.trim()
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`分析失败: ${response.status} ${response.statusText}`);
-      }
-
-      const result = await response.json();
+      // 在新窗口打开商品页面并提取内容
+      const popup = window.open(url.href, '_blank', 'width=1200,height=800,scrollbars=yes');
       
-      if (result.success && result.pageData) {
-        // 更新页面数据
-        setPageData(result.pageData);
-        
-        // 添加成功消息
-        const successMsg: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: `🎉 导购页生成成功！\n\n✅ 已分析商品信息:\n• 标题: ${result.pageData.hero?.headline || '未提取'}\n• 描述: ${result.pageData.hero?.subhead || '未提取'}\n• 特性: ${result.pageData.usps?.length || 0} 个卖点\n• 文本长度: ${result.extractedInfo?.textLength || 0} 字符\n\n您可以继续通过AI对话进行个性化调整！`,
-          timestamp: Date.now()
-        };
-        setMessages(prev => [...prev, successMsg]);
-        
-        // 清空URL输入
-        setProductUrl('');
-      } else {
-        throw new Error(result.message || '提取商品信息失败');
+      if (!popup) {
+        throw new Error('无法打开新窗口，请允许弹窗后重试');
       }
+
+      // 等待页面加载完成后提取内容
+      await new Promise((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 60; // 最多等待60秒
+        
+        const checkAndExtract = () => {
+          attempts++;
+          
+          if (popup.closed) {
+            reject(new Error('页面窗口被关闭'));
+            return;
+          }
+          
+          if (attempts > maxAttempts) {
+            popup.close();
+            reject(new Error('页面加载超时，请手动刷新页面后重试'));
+            return;
+          }
+
+          try {
+            // 检查页面是否加载完成
+            if (popup.document && popup.document.readyState === 'complete') {
+              // 提取页面内容
+              const extractedData = extractContentFromPage(popup.document, url.href);
+              popup.close();
+              resolve(extractedData);
+            } else {
+              setTimeout(checkAndExtract, 1000);
+            }
+          } catch (e) {
+            // 跨域限制，使用备用方案
+            setTimeout(checkAndExtract, 1000);
+          }
+        };
+        
+        // 开始检查
+        setTimeout(checkAndExtract, 2000); // 等待2秒后开始检查
+      }).then(async (extractedData: any) => {
+        // 调用浏览器内容分析API
+        const response = await fetch('/api/analyze-browser-content', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(extractedData)
+        });
+
+        if (!response.ok) {
+          throw new Error(`内容分析失败: ${response.status} ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.success && result.pageData) {
+          // 更新页面数据
+          setPageData(result.pageData);
+          
+          // 添加成功消息
+          const successMsg: ChatMessage = {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            content: `🎉 导购页生成成功！\n\n✅ 已分析商品信息:\n• 标题: ${result.pageData.hero?.headline || '未提取'}\n• 描述: ${result.pageData.hero?.subhead || '未提取'}\n• 特性: ${result.pageData.usps?.length || 0} 个卖点\n• 文本长度: ${result.extractedInfo?.textLength || 0} 字符\n• 图片: ${result.extractedInfo?.imageCount || 0} 张\n\n您可以继续通过AI对话进行个性化调整！`,
+            timestamp: Date.now()
+          };
+          setMessages(prev => [...prev, successMsg]);
+          
+          // 清空URL输入
+          setProductUrl('');
+        } else {
+          throw new Error(result.message || '提取商品信息失败');
+        }
+      });
       
     } catch (error) {
       console.error('Generate from URL failed:', error);
@@ -554,13 +524,76 @@ function ClaudeApp() {
       const errorMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `❌ 生成失败: ${error instanceof Error ? error.message : '未知错误'}\n\n请检查:\n• 文本内容是否完整\n• 是否包含商品相关信息\n• 内容长度是否足够（至少50字符）\n\n您也可以继续使用AI对话功能手动编辑页面。`,
+        content: `❌ 生成失败: ${error instanceof Error ? error.message : '未知错误'}\n\n建议解决方案:\n• 请允许浏览器弹窗\n• 确保已登录相关电商平台\n• 等待页面完全加载后再关闭\n• 尝试手动刷新商品页面\n\n您也可以继续使用AI对话功能手动编辑页面。`,
         timestamp: Date.now()
       };
       setMessages(prev => [...prev, errorMsg]);
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  // 从页面DOM提取内容的函数
+  const extractContentFromPage = (doc: Document, url: string) => {
+    const title = doc.title || '';
+    let content = '';
+    
+    // 尝试提取主要内容
+    const contentSelectors = [
+      '.product-detail', '.item-detail', '.product-info', '.goods-detail',
+      '[class*="product"]', '[class*="item"]', '[class*="goods"]', '[id*="product"]',
+      'main', '.main', '#main', '.content', '#content'
+    ];
+    
+    let extracted = false;
+    for (const selector of contentSelectors) {
+      const element = doc.querySelector(selector);
+      if (element) {
+        const text = element.textContent || '';
+        if (text.length > 200) {
+          content = text;
+          extracted = true;
+          break;
+        }
+      }
+    }
+    
+    // 如果没有找到特定区域，提取body内容
+    if (!extracted && doc.body) {
+      content = doc.body.textContent || '';
+    }
+    
+    // 清理内容
+    content = content
+      .replace(/\s+/g, ' ')
+      .replace(/登录|注册|购物车|客服|帮助|首页|导航|菜单/g, '')
+      .trim()
+      .substring(0, 8000); // 限制长度
+    
+    // 提取图片链接
+    const images: string[] = [];
+    let imgElements = doc.querySelectorAll('img[src*="product"], img[src*="item"], img[src*="goods"], .product img, .item img, .goods img');
+    
+    if (imgElements.length === 0) {
+      imgElements = doc.querySelectorAll('img');
+    }
+    
+    for (let i = 0; i < Math.min(imgElements.length, 5); i++) {
+      const img = imgElements[i] as HTMLImageElement;
+      const src = img.src || img.getAttribute('data-src') || img.getAttribute('data-original');
+      if (src && src.indexOf('http') === 0 && src.indexOf('data:') !== 0) {
+        if (img.naturalWidth > 100 || img.naturalHeight > 100) { // 过滤小图标
+          images.push(src);
+        }
+      }
+    }
+    
+    return {
+      url: url,
+      title: title,
+      content: content,
+      images: images
+    };
   };
 
   // 初始化已发布页面列表和API设置
@@ -761,7 +794,7 @@ function ClaudeApp() {
             fontSize: '0.875rem',
             marginBottom: '1.5rem'
           }}>
-            输入商品网址，系统将自动抓取并分析商品信息，智能生成专业导购页面
+            输入商品网址，系统将在新窗口打开页面，利用您的登录状态提取商品信息，智能生成专业导购页面
           </p>
           
           <div style={{
@@ -773,9 +806,9 @@ function ClaudeApp() {
             fontSize: '0.875rem',
             color: '#0c4a6e'
           }}>
-            🤖 <strong>智能分析流程：</strong> 输入网址 → 自动抓取 → AI分析 → 图片处理 → 生成导购页
+            🤖 <strong>智能分析流程：</strong> 输入网址 → 新窗口打开 → 浏览器提取 → AI分析 → 图片处理 → 生成导购页
             <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', opacity: '0.8' }}>
-              ✨ 支持淘宝、京东、天猫、亚马逊等主流电商平台
+              ✨ 支持淘宝、京东、天猫、亚马逊等主流电商平台，利用您的登录状态绕过访问限制
             </div>
           </div>
           

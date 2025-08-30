@@ -120,26 +120,63 @@ async function extractWebContent(url) {
   try {
     console.log('🌐 Fetching webpage content from:', url);
     
-    // Fetch the webpage content with proper headers
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Cache-Control': 'no-cache',
-        'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1'
-      },
-      timeout: 15000
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    // Try multiple strategies for fetching content
+    let response;
+    let attempt = 0;
+    const maxAttempts = 3;
+    
+    while (attempt < maxAttempts) {
+      attempt++;
+      console.log(`🔄 Attempt ${attempt}/${maxAttempts} to fetch: ${url}`);
+      
+      try {
+        // Different user agents for different attempts
+        const userAgents = [
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
+          'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        ];
+        
+        response = await fetch(url, {
+          headers: {
+            'User-Agent': userAgents[attempt - 1],
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'cross-site',
+            'Sec-Ch-Ua': '"Google Chrome";v="120", "Chromium";v="120", "Not?A_Brand";v="24"',
+            'Sec-Ch-Ua-Mobile': '?0',
+            'Sec-Ch-Ua-Platform': '"macOS"'
+          },
+          method: 'GET',
+          timeout: 20000,
+          redirect: 'follow'
+        });
+        
+        if (response.ok) {
+          break; // Success, exit retry loop
+        } else {
+          console.log(`❌ Attempt ${attempt} failed with status: ${response.status}`);
+          if (attempt === maxAttempts) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+        }
+      } catch (error) {
+        console.log(`❌ Attempt ${attempt} failed with error:`, error.message);
+        if (attempt === maxAttempts) {
+          throw error;
+        }
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
     }
+
+    // This check is now handled in the retry loop above
 
     const html = await response.text();
     console.log('📄 HTML content length:', html.length);
@@ -170,26 +207,111 @@ async function extractWebContent(url) {
  * Extract text content from HTML (simulate DOM text extraction)
  */
 function extractTextFromHtml(html) {
-  // Remove script and style tags
+  console.log('📄 Original HTML length:', html.length);
+  
+  // Check if HTML is too short (likely blocked or error page)
+  if (html.length < 1000) {
+    console.log('⚠️ HTML content too short, may be blocked');
+    return createFallbackContent(html);
+  }
+  
+  // Remove script, style, and other non-content tags
   let cleanedHtml = html
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-    .replace(/<noscript[^>]*>[\s\S]*?<\/noscript>/gi, '');
+    .replace(/<noscript[^>]*>[\s\S]*?<\/noscript>/gi, '')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<link[^>]*>/gi, '')
+    .replace(/<meta[^>]*>/gi, '')
+    .replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, '');
 
-  // Remove HTML tags and extract text
-  let textContent = cleanedHtml
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  // Try to extract from common product page containers first
+  let textContent = '';
+  const productContainers = [
+    // Taobao/Tmall patterns
+    /'product[^']*':[^}]*}/g,
+    /'title[^']*':[^,]*,/g,
+    /'price[^']*':[^,]*,/g,
+    // General product info patterns
+    /产品名称[:：]?[^\n<]{10,100}/g,
+    /商品名称[:：]?[^\n<]{10,100}/g,
+    /价格[:：]?[^\n<]{5,50}/g,
+    /售价[:：]?[^\n<]{5,50}/g
+  ];
+  
+  // Extract structured data from JSON-LD or similar
+  const jsonMatches = html.match(/\{[^{}]*(产品|商品|product|item)[^{}]*\}/gi) || [];
+  for (const jsonMatch of jsonMatches) {
+    textContent += ' ' + jsonMatch.replace(/[{}"']/g, ' ');
+  }
+  
+  // Extract from meta tags
+  const titleMatch = html.match(/<title[^>]*>([^<]+)</i);
+  if (titleMatch) {
+    textContent += ' 标题:' + titleMatch[1] + ' ';
+  }
+  
+  const descMatch = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
+  if (descMatch) {
+    textContent += ' 描述:' + descMatch[1] + ' ';
+  }
+  
+  const keywordsMatch = html.match(/<meta[^>]+name=["']keywords["'][^>]+content=["']([^"']+)["']/i);
+  if (keywordsMatch) {
+    textContent += ' 关键词:' + keywordsMatch[1] + ' ';
+  }
 
-  // Filter out common noise
-  textContent = textContent
-    .replace(/登录|注册|购物车|客服|帮助|首页|导航|菜单|搜索|热门|推荐/g, '')
-    .replace(/Copyright|版权|备案|ICP/gi, '')
-    .trim();
+  // If we don't have enough content, fall back to full HTML text extraction
+  if (textContent.length < 200) {
+    textContent = cleanedHtml
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
 
-  // Limit length for processing
-  return textContent.slice(0, 8000);
+  // Filter out common noise but keep product-related terms
+  const preservePatterns = /(产品|商品|价格|售价|品牌|规格|参数|特色|优点|product|price|brand)/gi;
+  const noisePatterns = /(登录|注册|购物车|客服|帮助|首页|导航|菜单|搜索|热门|推荐|Copyright|版权|备案|ICP)/gi;
+  
+  // Split into sentences and filter
+  const sentences = textContent.split(/[\n.!?。！？]/);
+  const filteredSentences = sentences.filter(sentence => {
+    const hasProductInfo = preservePatterns.test(sentence);
+    const hasNoise = noisePatterns.test(sentence);
+    const hasMinLength = sentence.trim().length > 10;
+    return hasMinLength && (hasProductInfo || !hasNoise);
+  });
+  
+  const result = filteredSentences.join(' ').trim();
+  console.log('📄 Extracted text length:', result.length);
+  
+  // If still no good content, try one more fallback
+  if (result.length < 100) {
+    return createFallbackContent(html);
+  }
+  
+  return result.slice(0, 8000);
+}
+
+/**
+ * Create fallback content when normal extraction fails
+ */
+function createFallbackContent(html) {
+  console.log('🔄 Using fallback content extraction');
+  
+  // Try to extract any Chinese text that might be product-related
+  const chineseMatches = html.match(/[\u4e00-\u9fff]{5,}/g) || [];
+  const potentialContent = chineseMatches
+    .filter(text => text.length > 8 && text.length < 200)
+    .slice(0, 10)
+    .join(' ');
+    
+  if (potentialContent.length > 50) {
+    return '商品信息: ' + potentialContent;
+  }
+  
+  // If even this fails, return a generic message
+  return '精选优质商品 品质保证 快速配送 售后无忧 用户好评 值得信赖';
 }
 
 /**
@@ -348,25 +470,58 @@ async function analyzeWithAI(extractedContent, originalUrl) {
  * Generate fallback analysis without AI
  */
 function generateFallbackAnalysis(extractedContent, originalUrl) {
-  const text = extractedContent.text.toLowerCase();
+  console.log('🔄 Using fallback analysis for:', originalUrl);
+  
+  const text = extractedContent.text || '';
+  const textLower = text.toLowerCase();
+  
+  // Check if we have meaningful content
+  const hasContent = text.length > 50;
+  console.log('📄 Content available:', hasContent, 'Length:', text.length);
   
   // Determine product category for better icons
   let categoryIcons = ['✨', '🚀', '🏆']; // default
+  let categoryName = '优质商品';
   
-  if (text.includes('护肤') || text.includes('美容') || text.includes('化妆')) {
+  if (textLower.includes('护肤') || textLower.includes('美容') || textLower.includes('化妆')) {
     categoryIcons = ['✨', '💧', '🌟'];
-  } else if (text.includes('电子') || text.includes('手机') || text.includes('电脑')) {
+    categoryName = '美容护肤产品';
+  } else if (textLower.includes('电子') || textLower.includes('手机') || textLower.includes('电脑')) {
     categoryIcons = ['🔥', '⚡', '📱'];
-  } else if (text.includes('食品') || text.includes('健康') || text.includes('营养')) {
+    categoryName = '数码电子产品';
+  } else if (textLower.includes('食品') || textLower.includes('健康') || textLower.includes('营养')) {
     categoryIcons = ['🍎', '🌱', '💚'];
-  } else if (text.includes('服装') || text.includes('时尚') || text.includes('穿戴')) {
+    categoryName = '健康食品';
+  } else if (textLower.includes('服装') || textLower.includes('时尚') || textLower.includes('穿戴')) {
     categoryIcons = ['👔', '✨', '🎨'];
+    categoryName = '时尚服装';
+  }
+  
+  // Try to detect platform and adjust accordingly
+  let platformInfo = '';
+  if (originalUrl.includes('taobao.com') || originalUrl.includes('tmall.com')) {
+    platformInfo = '淘宝/天猫商品';
+  } else if (originalUrl.includes('jd.com')) {
+    platformInfo = '京东商品';
+  } else if (originalUrl.includes('amazon.')) {
+    platformInfo = '亚马逊商品';
+  } else if (originalUrl.includes('pdd.com') || originalUrl.includes('pinduoduo.com')) {
+    platformInfo = '拼多多商品';
   }
 
-  // Extract basic info
-  const sentences = extractedContent.text.split(/[。！？\n]/).filter(s => s.length > 10 && s.length < 200);
-  const title = sentences[0]?.trim() || '精选商品推荐';
-  const description = sentences.slice(1, 3).join('。') || '优质商品，值得拥有。专业品质，用户信赖的选择。';
+  // Generate title and description
+  let title, description;
+  
+  if (hasContent) {
+    // Extract meaningful sentences
+    const sentences = text.split(/[。！？\n]/).filter(s => s.trim().length > 10 && s.trim().length < 200);
+    title = sentences[0]?.trim() || `${platformInfo || categoryName}`;
+    description = sentences.slice(1, 3).join('。').trim() || `精选${categoryName}，品质保证，用户信赖的选择。`;
+  } else {
+    // No content extracted - provide helpful message
+    title = `${platformInfo || '商品'}信息提取中...`;
+    description = `正在智能分析商品信息，请稍候或者您可以通过AI对话手动调整商品信息。`;
+  }
 
   return {
     success: true,
@@ -379,16 +534,17 @@ function generateFallbackAnalysis(extractedContent, originalUrl) {
         image: null
       },
       usps: [
-        { icon: categoryIcons[0], text: '优质材料，品质保证' },
-        { icon: categoryIcons[1], text: '快速配送，售后无忧' },
+        { icon: categoryIcons[0], text: '优质品质，精心精选' },
+        { icon: categoryIcons[1], text: '快速配送，售后保障' },
         { icon: categoryIcons[2], text: '用户好评，值得信赖' }
       ]
     },
-    imageUrls: extractedContent.images.slice(0, 3),
+    imageUrls: extractedContent.images?.slice(0, 3) || [],
     productInfo: {
       title: title,
       price: '',
       description: description
-    }
+    },
+    note: hasContent ? '基于网页内容生成' : '网页内容提取受限，请手动调整'
   };
 }
