@@ -1167,14 +1167,30 @@ function ClaudeApp() {
               }}>
                 📖 更好的选择：使用书签工具
               </h3>
-              <p style={{
-                fontSize: '0.875rem',
-                color: '#0369a1',
-                margin: '0 0 1rem 0',
-                lineHeight: '1.5'
+              <div style={{
+                background: '#f0fdf4',
+                border: '1px solid #22c55e',
+                borderRadius: '8px',
+                padding: '1rem',
+                margin: '0 0 1rem 0'
               }}>
-                书签工具在商品页面直接提取内容，无跨域限制，利用登录状态获取完整信息。点击后会自动打开PageEditor进行分析
-              </p>
+                <p style={{
+                  fontSize: '0.875rem',
+                  color: '#15803d',
+                  margin: '0 0 0.5rem 0',
+                  fontWeight: 600
+                }}>
+                  ✅ 图片提取问题已修复！
+                </p>
+                <p style={{
+                  fontSize: '0.8rem',
+                  color: '#166534',
+                  margin: '0',
+                  lineHeight: '1.4'
+                }}>
+                  书签工具现在可以正确提取商品主图，利用智能评分算法识别高质量图片。无跨域限制，利用登录状态获取完整信息。
+                </p>
+              </div>
               
               <div style={{
                 display: 'inline-block',
@@ -1191,7 +1207,7 @@ function ClaudeApp() {
                 }}>
                   将下面的链接拖拽到浏览器书签栏，或右键"添加到收藏夹"：
                 </p>
-                <a href="javascript:(function(){console.log('🔍 开始提取商品页面内容...');var title=document.title||'';var url=window.location.href;var content='';console.log('📄 页面标题:',title);console.log('🔗 页面URL:',url);var contentSelectors=['.product-detail','.item-detail','.product-info','.goods-detail','[class*=product]','[class*=item]','[class*=goods]','[id*=product]','main','.main','#main','.content','#content','.detail-content','.product-content'];var extracted=false;for(var i=0;i<contentSelectors.length&&!extracted;i++){try{var elements=document.querySelectorAll(contentSelectors[i]);for(var k=0;k<elements.length;k++){var element=elements[k];if(element){var text=element.innerText||element.textContent||'';if(text.length>200){content=text;extracted=true;console.log('✅ 使用选择器提取到内容:',contentSelectors[i],text.length+'字符');break;}}}if(extracted)break;}catch(e){console.log('⚠️ 选择器',contentSelectors[i],'失败:',e.message);}}if(!extracted){try{content=document.body.innerText||document.body.textContent||'';console.log('📝 使用body内容，长度:',content.length+'字符');}catch(e){console.log('❌ 无法获取body内容:',e.message);content='商品页面内容';}}content=content.replace(/\s+/g,' ').replace(/登录|注册|购物车|客服|帮助|首页|导航|菜单|搜索|热门|推荐/g,'').trim();if(content.length>8000){content=content.substring(0,8000);}console.log('📝 清理后内容长度:',content.length+'字符');var images=[];try{var imgSelectors=['img[src*=product]','img[src*=item]','img[src*=goods]','.product img','.item img','.goods img','img[alt*=商品]','img[alt*=product]'];var imgElements=[];for(var s=0;s<imgSelectors.length;s++){var imgs=document.querySelectorAll(imgSelectors[s]);for(var t=0;t<imgs.length;t++){imgElements.push(imgs[t]);}}if(imgElements.length===0){imgElements=Array.from(document.querySelectorAll('img'));}console.log('🖼️ 找到图片元素:',imgElements.length+'个');for(var j=0;j<Math.min(imgElements.length,8);j++){var img=imgElements[j];var src=img.src||img.getAttribute('data-src')||img.getAttribute('data-original')||img.getAttribute('data-lazy-src');if(src&&src.indexOf('http')===0&&src.indexOf('data:')!==0){var width=img.naturalWidth||img.width||0;var height=img.naturalHeight||img.height||0;if(width>80||height>80||src.includes('product')||src.includes('item')||src.includes('goods')){images.push(src);}}}}catch(e){console.log('⚠️ 图片提取失败:',e.message);}console.log('🖼️ 提取到有效图片:',images.length+'张');var extractedData={title:title,url:url,content:content,images:images,timestamp:new Date().toISOString()};console.log('📦 提取数据汇总:',{title:title.length+'字符',content:content.length+'字符',images:images.length+'张',url:url});localStorage.setItem('pageeditor_extracted_data',JSON.stringify(extractedData));console.log('💾 数据已保存到localStorage');var pageeditorUrl;if(window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1'){pageeditorUrl='http://localhost:3001';}else{pageeditorUrl='https://pageeditor.sharetox.com';}console.log('🚀 准备打开PageEditor:',pageeditorUrl);var popup=window.open(pageeditorUrl,'pageeditor','width=1200,height=800,scrollbars=yes,resizable=yes');if(!popup){alert('✅ 商品数据提取完成！\n\n📄 标题: '+title.substring(0,50)+'...\n📝 内容: '+content.length+' 字符\n🖼️ 图片: '+images.length+' 张\n\n请手动打开 PageEditor 页面，数据将自动加载。\n\n如果需要允许弹窗，请刷新后重试。');}else{console.log('✅ PageEditor窗口已打开，等待加载...');setTimeout(function(){try{popup.postMessage({type:'PAGEEDITOR_DATA',data:extractedData},'*');console.log('📤 数据已发送到PageEditor');}catch(e){console.log('⚠️ 无法直接发送数据，已保存到localStorage:',e.message);}},3000);}})();"
+                <a href="javascript:(function(){var title=document.title||'';var url=window.location.href;var content='';var selectors=['.product-detail','.item-detail','.product-info','.goods-detail','[class*=product]','[class*=item]','[class*=goods]','[id*=product]','main','.main','#main','.content','#content'];var extracted=false;for(var i=0;i<selectors.length&&!extracted;i++){try{var elements=document.querySelectorAll(selectors[i]);for(var k=0;k<elements.length;k++){var element=elements[k];if(element){var text=element.innerText||element.textContent||'';if(text.length>200){content=text;extracted=true;break;}}}}catch(e){}}if(!extracted){try{content=document.body.innerText||document.body.textContent||'';}catch(e){content='商品页面内容';}}content=content.replace(/\\s+/g,' ').replace(/登录|注册|购物车|客服|帮助|首页|导航|菜单|搜索|热门|推荐/g,'').trim();if(content.length>8000){content=content.substring(0,8000);}var images=[];try{var imgs=document.querySelectorAll('img');var imgData=[];for(var i=0;i<imgs.length;i++){var img=imgs[i];var srcs=[img.src,img.getAttribute('data-src'),img.getAttribute('data-original'),img.getAttribute('data-lazy-src'),img.getAttribute('data-ks-lazyload')];for(var s=0;s<srcs.length;s++){var src=srcs[s];if(src&&src.indexOf('http')===0&&src.indexOf('data:')!==0){var rect=img.getBoundingClientRect();var score=rect.width*rect.height;if(src.includes('400x400')||src.includes('800x800'))score+=100000;if(src.includes('product')||src.includes('item'))score+=50000;if(img.alt&&img.alt.includes('商品'))score+=30000;imgData.push({src:src,score:score});break;}}}imgData.sort(function(a,b){return b.score-a.score;});for(var j=0;j<Math.min(imgData.length,5);j++){images.push(imgData[j].src);}}catch(e){}var data={title:title,url:url,content:content,images:images,timestamp:new Date().toISOString()};localStorage.setItem('pageeditor_extracted_data',JSON.stringify(data));var pageUrl=window.location.hostname.includes('localhost')?'http://localhost:3001':'https://pageeditor.sharetox.com';var popup=window.open(pageUrl,'pageeditor','width=1200,height=800,scrollbars=yes,resizable=yes');if(!popup){alert('数据已提取！请手动打开 PageEditor 页面。');}else{setTimeout(function(){try{popup.postMessage({type:'PAGEEDITOR_DATA',data:data},'*');}catch(e){}},2000);}})()"
                 style={{
                   display: 'inline-block',
                   background: '#3b82f6',

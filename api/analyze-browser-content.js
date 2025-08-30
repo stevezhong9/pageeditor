@@ -1,3 +1,5 @@
+import { put } from '@vercel/blob';
+
 export default async function handler(request, response) {
   // Enable CORS
   response.setHeader('Access-Control-Allow-Origin', '*');
@@ -57,24 +59,9 @@ export default async function handler(request, response) {
     if (images && images.length > 0) {
       console.log('🖼️ Processing browser-extracted images:', images.length);
       try {
-        const imageResponse = await fetch(new URL('/api/store-product-images', request.url).href, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            imageUrls: images.slice(0, 3), // Limit to first 3 images
-            productId: `product_${Date.now()}`
-          })
-        });
-        
-        if (imageResponse.ok) {
-          const imageResult = await imageResponse.json();
-          if (imageResult.success) {
-            processedImages = imageResult.images;
-            console.log('✅ Images processed successfully:', processedImages.length);
-          }
-        }
+        // Process images directly instead of making HTTP call
+        processedImages = await processProductImages(images.slice(0, 3), `product_${Date.now()}`);
+        console.log('✅ Images processed successfully:', processedImages.length);
       } catch (imageError) {
         console.error('⚠️ Image processing failed:', imageError);
         // Continue without images
@@ -288,4 +275,178 @@ function generateBrowserFallbackAnalysis(content, url, title) {
       description: description
     }
   };
+}
+
+/**
+ * Process product images and store to Vercel Blob
+ */
+async function processProductImages(imageUrls, productId) {
+  try {
+    const processedImages = [];
+    const errors = [];
+
+    console.log('📸 Processing images for product:', productId);
+
+    // Process each image
+    for (let i = 0; i < Math.min(imageUrls.length, 5); i++) {
+      const imageUrl = imageUrls[i];
+      
+      try {
+        console.log(`📥 Processing image ${i + 1}:`, imageUrl);
+        
+        // Validate and clean URL
+        const cleanedUrl = cleanImageUrl(imageUrl);
+        if (!cleanedUrl) {
+          errors.push(`图片链接 ${i + 1} 格式不正确`);
+          continue;
+        }
+
+        // Download image
+        const imageData = await downloadImage(cleanedUrl);
+        if (!imageData) {
+          errors.push(`无法下载图片 ${i + 1}`);
+          continue;
+        }
+
+        // Store to Blob
+        const filename = `${productId}/image_${i + 1}.${getImageExtension(cleanedUrl)}`;
+        const blobPath = `product-images/${filename}`;
+        
+        const blob = await put(blobPath, imageData.buffer, {
+          access: 'public',
+          contentType: imageData.contentType,
+          addRandomSuffix: false
+        });
+
+        processedImages.push({
+          originalUrl: imageUrl,
+          blobUrl: blob.url,
+          filename: filename,
+          size: imageData.buffer.length,
+          contentType: imageData.contentType
+        });
+
+        console.log(`✅ Image ${i + 1} stored:`, blob.url);
+
+      } catch (error) {
+        console.error(`❌ Error processing image ${i + 1}:`, error);
+        errors.push(`处理图片 ${i + 1} 失败: ${error.message}`);
+      }
+    }
+
+    console.log(`🎉 Image processing completed: ${processedImages.length} success, ${errors.length} errors`);
+    return processedImages;
+
+  } catch (error) {
+    console.error('❌ Process product images error:', error);
+    return [];
+  }
+}
+
+/**
+ * Clean and validate image URL
+ */
+function cleanImageUrl(url) {
+  try {
+    let cleanedUrl = url.trim();
+    
+    // Handle protocol-relative URLs
+    if (cleanedUrl.startsWith('//')) {
+      cleanedUrl = 'https:' + cleanedUrl;
+    }
+    
+    // Handle relative URLs
+    if (cleanedUrl.startsWith('/')) {
+      return null;
+    }
+    
+    // Validate URL
+    const urlObj = new URL(cleanedUrl);
+    
+    // Only allow http/https
+    if (!['http:', 'https:'].includes(urlObj.protocol)) {
+      return null;
+    }
+    
+    return cleanedUrl;
+    
+  } catch (error) {
+    console.error('URL cleaning error:', error);
+    return null;
+  }
+}
+
+/**
+ * Download image from URL
+ */
+async function downloadImage(url) {
+  try {
+    console.log('🌐 Downloading image:', url);
+    
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'image/*,*/*;q=0.8',
+        'Accept-Language': 'zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3',
+        'Cache-Control': 'no-cache'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const contentType = response.headers.get('content-type');
+    
+    // Validate content type
+    if (!contentType || !contentType.startsWith('image/')) {
+      console.warn(`Not an image content type: ${contentType} for ${url}`);
+      // Still try to process it in case the server is misconfigured
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Validate file size (max 10MB)
+    if (buffer.length > 10 * 1024 * 1024) {
+      throw new Error('Image too large (max 10MB)');
+    }
+
+    // Validate minimum file size (at least 500 bytes)
+    if (buffer.length < 500) {
+      throw new Error('Image too small');
+    }
+
+    return {
+      buffer: buffer,
+      contentType: contentType || 'image/jpeg',
+      size: buffer.length
+    };
+
+  } catch (error) {
+    console.error('Image download error:', error);
+    return null;
+  }
+}
+
+/**
+ * Get image extension from URL
+ */
+function getImageExtension(url) {
+  try {
+    const urlObj = new URL(url);
+    const path = urlObj.pathname.toLowerCase();
+    
+    // Try to extract extension from path
+    const match = path.match(/\.(jpe?g|png|gif|webp|bmp)$/i);
+    if (match) {
+      return match[1] === 'jpeg' ? 'jpg' : match[1];
+    }
+    
+    // Default to jpg for e-commerce sites
+    return 'jpg';
+    
+  } catch (error) {
+    return 'jpg';
+  }
 }
