@@ -1,195 +1,159 @@
-# JSON Patch 导购页编辑器
+# 🤖 Claude AI 导购页编辑器
 
-一个基于 JSON Patch 的导购页面编辑器 Demo，演示"持续对话修改 → Patch → 增量应用 → 实时渲染"的完整流程。
+一个基于 Claude AI 的智能导购页面编辑器，支持自然语言对话编辑、实时预览、一键下载和本地发布功能。
 
-## ✨ 核心特性
+![Claude AI PageEditor](https://img.shields.io/badge/Claude-AI%20PageEditor-blue?style=for-the-badge&logo=anthropic)
+![React](https://img.shields.io/badge/React-18.2.0-61DAFB?style=for-the-badge&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0.2-3178C6?style=for-the-badge&logo=typescript)
+![Vite](https://img.shields.io/badge/Vite-4.4.5-646CFF?style=for-the-badge&logo=vite)
 
-### 🔄 JSON Patch 增量更新
-- 使用 `fast-json-patch` 实现精确的增量更新
-- 支持 RFC 6902 标准的 JSON Patch 操作
-- 自动 patch 优化和安全验证
+## ✨ 核心功能
 
-### 💬 对话式编辑
-- AI 助手理解自然语言指令
-- 自动生成对应的 JSON Patch 操作
-- 实时应用修改并渲染页面
+### 🎯 AI 智能编辑
+- **自然语言对话** - 通过对话形式编辑导购页内容
+- **Claude API 集成** - 支持真实 Claude AI 或演示模式
+- **JSON Patch 更新** - 增量更新机制，精准修改
+- **实时反馈** - 即时显示编辑结果和错误信息
 
-### 📚 版本管理
-- Git-like 的版本控制系统
-- 支持回滚/前进到任意历史版本
-- 可视化版本历史和变更记录
+### 👁️ 实时预览
+- **所见即所得** - 实时展示编辑效果
+- **响应式设计** - 支持桌面和移动端预览
+- **滚动同步** - 自动滚动到编辑区域
 
-### 🎨 模块化渲染
-- Hero/USP/FAQ 等页面模块组件
-- 支持品牌配色和样式定制
-- 响应式设计适配多设备
+### 📦 导出功能
+- **ZIP 下载** - 一键打包完整的 HTML、CSS、JS 文件
+- **独立部署** - 生成的文件可直接部署到任何静态托管
+- **资源完整** - 包含所有样式、脚本和使用说明
 
-### 🛠 开发友好
-- JSON 编辑器直接修改页面数据
-- 实时预览所见即所得
-- 完整的 TypeScript 类型支持
+### 🚀 本地发布
+- **自定义 URL** - 发布到 `pages/[自定义名称]` 地址
+- **重复检测** - 防止页面名称冲突
+- **本地存储** - 使用浏览器本地存储管理已发布页面
+
+## 🛠️ 技术栈
+
+- **前端框架**: React 18 + TypeScript
+- **构建工具**: Vite
+- **样式方案**: Tailwind CSS + 自定义 CSS
+- **状态管理**: React Hooks + Zustand
+- **AI 集成**: Claude API
+- **文件处理**: JSZip + FileSaver
+- **增量更新**: fast-json-patch + jsondiffpatch
 
 ## 🚀 快速开始
 
-### 安装依赖
+### 环境要求
+- Node.js >= 16
+- npm >= 7
+
+### 本地开发
 ```bash
+# 克隆项目
+git clone https://github.com/stevezhong9/pageeditor.git
+cd pageeditor
+
+# 安装依赖
 npm install
-```
 
-### 启动开发服务器
-```bash
+# 启动开发服务器
 npm run dev
+
+# 构建生产版本
+npm run build
 ```
 
-访问 http://localhost:3000 查看效果
-
-## 🏗 技术架构
-
-### 核心依赖
-- **React + TypeScript** - 前端框架
-- **Vite** - 构建工具
-- **Zustand** - 状态管理
-- **TailwindCSS** - 样式框架
-- **fast-json-patch** - JSON Patch 引擎
-- **jsondiffpatch** - 差异计算和可视化
-
-### 项目结构
-```
-src/
-├── components/
-│   ├── editor/          # 编辑器组件
-│   │   ├── ChatEditor.tsx    # 对话式编辑
-│   │   ├── JsonEditor.tsx    # JSON编辑器
-│   │   └── VersionHistory.tsx # 版本历史
-│   ├── layout/          # 页面布局组件
-│   │   ├── HeroSection.tsx    # Hero区域
-│   │   ├── USPSection.tsx     # 卖点区域
-│   │   ├── FAQSection.tsx     # FAQ区域
-│   │   └── PageRenderer.tsx   # 页面渲染器
-│   └── ui/              # UI组件
-│       └── Toolbar.tsx        # 工具栏
-├── stores/
-│   └── pageStore.ts     # 页面状态管理
-├── types/
-│   └── schema.ts        # 类型定义
-├── utils/
-│   └── patchEngine.ts   # Patch引擎
-└── App.tsx              # 主应用
+### 环境配置
+创建 `.env` 文件：
+```env
+# Claude API 配置（可选）
+VITE_CLAUDE_API_KEY=your_claude_api_key_here
+VITE_CLAUDE_API_URL=https://api.anthropic.com/v1/messages
 ```
 
-## 🎯 使用说明
+## 📁 项目结构
 
-### 1. 对话式编辑
-在左侧对话框中输入自然语言指令，例如：
-- "把标题改得更吸引人"
-- "添加一个环保相关的卖点"
-- "把按钮文字改成立即购买"
-
-AI 会自动理解并生成对应的 JSON Patch，实时更新页面。
-
-### 2. JSON 编辑
-点击工具栏的"JSON编辑"按钮，可以直接修改页面的 JSON 数据结构：
-```json
-{
-  "hero": {
-    "headline": "你的标题",
-    "subhead": "副标题描述",
-    "cta": "行动按钮",
-    "image": "图片URL"
-  },
-  "usps": [
-    {"icon": "✨", "text": "卖点描述"}
-  ]
-}
+```
+pageeditor/
+├── src/
+│   ├── services/           # 服务层
+│   │   ├── claudeAPI.ts    # Claude API 集成
+│   │   ├── downloadService.ts  # 下载服务
+│   │   └── publishService.ts   # 发布服务
+│   ├── types/              # TypeScript 类型定义
+│   ├── utils/              # 工具函数
+│   ├── ClaudeApp.tsx       # 主应用组件
+│   └── main.tsx           # 应用入口
+├── public/                 # 静态资源
+├── dist/                   # 构建输出
+├── vercel.json            # Vercel 部署配置
+└── package.json           # 项目配置
 ```
 
-### 3. 版本历史
-点击"版本历史"查看所有修改记录，支持：
-- 查看每次修改的详细变更
-- 一键回滚到任意历史版本
-- 前进/后退版本导航
+## 🎨 功能演示
 
-## 🔧 核心实现
-
-### Patch 引擎
-```typescript
-import { applyPatch, compare } from 'fast-json-patch';
-
-// 应用 patches
-const newLayout = PatchEngine.applyPatches(currentLayout, patches);
-
-// 生成 patches
-const patches = PatchEngine.generatePatches(oldLayout, newLayout);
+### 1. AI 对话编辑
+```
+用户: 将标题改为"革命性护肤体验"
+AI: ✅ 已将标题更新为"革命性护肤体验"
 ```
 
-### 版本管理
-```typescript
-class VersionManager {
-  addVersion(layout: PageLayout, message: string, patches: PatchOperation[])
-  rollback(): PageLayout | null
-  forward(): PageLayout | null
-  switchToVersion(versionId: string): PageLayout | null
-}
-```
+### 2. 实时预览
+- 编辑内容后立即在右侧预览面板显示
+- 支持响应式预览，适配不同屏幕尺寸
 
-### 状态管理
-```typescript
-const usePageStore = create<PageState>()((set, get) => ({
-  layout: initialPageLayout,
-  applyPatches: (patches, message) => {
-    const newLayout = PatchEngine.applyPatches(state.layout, patches);
-    state.layout = newLayout;
-    state.versionManager.addVersion(newLayout, message, patches);
-  }
-}));
-```
+### 3. 一键下载
+- 点击"📦 下载导购页"生成完整 ZIP 包
+- 包含 HTML、CSS、JS 和使用说明
 
-## 🧪 示例 Patch 操作
+### 4. 本地发布
+- 点击"🚀 发布页面"设置自定义页面名称
+- 发布到 `pages/[自定义名称]` URL
+- 支持页面名称验证和重复检测
 
-### 修改标题
-```json
-[{"op": "replace", "path": "/hero/headline", "value": "新的标题"}]
-```
+## 🔧 配置选项
 
-### 添加卖点
-```json
-[{"op": "add", "path": "/usps/-", "value": {"icon": "🌱", "text": "环保材质"}}]
-```
+### Claude API 设置
+- 支持真实 Claude API 或演示模式
+- 可在设置面板中配置 API Key
+- 自动降级到演示模式（CORS 限制时）
 
-### 更新 CTA 按钮
-```json
-[{"op": "replace", "path": "/hero/cta", "value": "立即购买"}]
-```
+### 页面模板
+- Hero 区域：标题、副标题、CTA 按钮
+- USP 区域：核心卖点展示
+- FAQ 区域：常见问题解答（可选）
 
-## 🚧 扩展方向
+## 📱 部署指南
 
-### 1. 真实 AI 集成
-将模拟的 AI 逻辑替换为 Claude/GPT API 调用：
-```typescript
-const generatePatchesFromAI = async (userMessage: string, currentLayout: PageLayout) => {
-  const response = await callClaudeAPI({
-    prompt: `根据用户请求生成JSON Patch: ${userMessage}`,
-    context: currentLayout
-  });
-  return JSON.parse(response);
-};
-```
+### Vercel 部署
+1. 推送代码到 GitHub
+2. 在 Vercel 中导入仓库
+3. 配置构建设置：
+   - Framework: Vite
+   - Build Command: `npm run build`
+   - Output Directory: `dist`
+4. 配置自定义域名（可选）
 
-### 2. 更多页面模块
-- 产品规格表
-- 用户评价
-- 购买流程
-- 优惠信息
+### 自定义域名
+在 Vercel 项目设置中添加域名：
+- 域名：`pageeditor.sharetox.com`
+- DNS 配置：CNAME 记录指向 `cname.vercel-dns.com`
 
-### 3. 协同编辑
-集成 Y.js 或 Automerge 实现多人协同编辑。
+## 🤝 贡献指南
 
-### 4. 数据持久化
-添加后端 API 保存页面和版本历史到数据库。
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 开启 Pull Request
 
-## 📄 License
-MIT
+## 📄 许可证
+
+本项目基于 MIT 许可证开源。
 
 ---
 
-这个 Demo 展示了如何使用 JSON Patch 技术实现增量更新的页面编辑器，为构建更复杂的导购页生成系统提供了技术基础。
+**🎯 目标用户**: 营销人员、产品经理、创业者  
+**🔧 技术水平**: 无需编程经验，支持自然语言编辑  
+**🌟 特色**: AI 驱动的智能编辑 + 一键部署
+
+Made with ❤️ and Claude AI
