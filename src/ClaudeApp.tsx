@@ -5,6 +5,7 @@ import { forceScrollbarVisibility, checkScrollProperties } from './utils/scrollT
 import { DownloadService } from './services/downloadService';
 import { PublishService } from './services/publishService';
 import { FilePublishService } from './services/filePublishService';
+import { BlobPublishService } from './services/blobPublishService';
 
 interface ChatMessage {
   id: string;
@@ -364,7 +365,7 @@ function ClaudeApp() {
 
       // 页面存在性检查由API端点处理
 
-      const result = await FilePublishService.publishPage(pageData, brandConfig, {
+      const result = await BlobPublishService.publishPage(pageData, brandConfig, {
         pageName: customPageName.trim(),
         includeSources: true
       });
@@ -412,7 +413,7 @@ function ClaudeApp() {
   };
 
   const validatePageName = (name: string) => {
-    return FilePublishService.validatePageName(name);
+    return BlobPublishService.validatePageName(name);
   };
 
   // 处理商品网址生成导购页
