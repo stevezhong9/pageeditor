@@ -1059,7 +1059,7 @@ function ClaudeApp() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <h1 style={{ fontSize: '1.5rem', color: '#1f2937', margin: 0 }}>
-              Claude AI 导购页编辑器
+              导购页AI生成工具
               {useClaudeAPI && <span style={{ 
                 marginLeft: '0.5rem', 
                 padding: '0.25rem 0.5rem', 
@@ -1086,18 +1086,83 @@ function ClaudeApp() {
             </p>
           </div>
           
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            style={{
-              background: '#f3f4f6',
-              border: '1px solid #d1d5db',
-              padding: '0.5rem',
-              borderRadius: '6px',
-              cursor: 'pointer'
-            }}
-          >
-            ⚙️ 设置
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+              请拖拽按钮到浏览器书签栏
+            </span>
+            <div style={{ position: 'relative' }}>
+              <a href="javascript:(function(){var title=document.title||'';var url=window.location.href;var content='';var selectors=['.BasicContent--wrapper','.DetailModule--module','.ItemContent','.BasicContent','.tb-detail','.detail-content','.product-detail','.item-detail','.product-info','.goods-detail','[class*=product]','[class*=item]','[class*=goods]','[id*=product]','.tm-detail','.tb-property','.J_DivItemDesc','#J_DivItemDesc','main','.main','#main','.content','#content'];var extracted=false;for(var i=0;i<selectors.length&&!extracted;i++){try{var elements=document.querySelectorAll(selectors[i]);for(var k=0;k<elements.length;k++){var element=elements[k];if(element){var text=element.innerText||element.textContent||'';if(text.length>200){content=text;extracted=true;break;}}}}catch(e){}}if(!extracted){try{var allText=document.body.innerText||document.body.textContent||'';var lines=allText.split('\\n').filter(function(line){return line.trim().length>10&&!line.match(/登录|注册|购物车|客服|帮助|首页|导航|菜单|搜索|热门|推荐|收藏|关注|分享/);});content=lines.slice(0,20).join(' ');}catch(e){content='淘宝商品 优质商品 精选好货 快速配送';}}content=content.replace(/\\s+/g,' ').replace(/登录|注册|购物车|客服|帮助|首页|导航|菜单|搜索|热门|推荐|收藏|关注|分享|立即购买|加入购物车|现货|有库存|满减|优惠券|领券|关店|店铺/g,'').trim();if(content.length>8000){content=content.substring(0,8000);}if(content.length<50){content='淘宝精选商品 优质好货 品质保证 快速配送 用户好评推荐';}var images=[];try{var imgs=document.querySelectorAll('img');var imgData=[];for(var i=0;i<imgs.length;i++){var img=imgs[i];var srcs=[img.src,img.getAttribute('data-src'),img.getAttribute('data-original'),img.getAttribute('data-lazy-src'),img.getAttribute('data-ks-lazyload'),img.getAttribute('data-lazy')];for(var s=0;s<srcs.length;s++){var src=srcs[s];if(src&&src.indexOf('http')===0&&src.indexOf('data:')!==0){var rect=img.getBoundingClientRect();var score=rect.width*rect.height;if(rect.width<100||rect.height<100)score=0;if(src.includes('logo')||src.includes('banner')||src.includes('icon')||src.includes('button')||src.includes('nav')||src.includes('menu'))score=0;if(src.includes('jfs.jd.com'))score+=80000;if(src.includes('400x400')||src.includes('800x800')||src.includes('_400x400')||src.includes('_800x800'))score+=100000;if(src.includes('product')||src.includes('item')||src.includes('goods')||src.includes('TB1')||src.includes('TB2'))score+=50000;if(img.alt&&(img.alt.includes('商品')||img.alt.includes('产品')))score+=30000;if(src.includes('.taobao.')||src.includes('.tmall.')||src.includes('.alicdn.'))score+=20000;if(img.className&&(img.className.includes('product')||img.className.includes('item')||img.className.includes('goods')))score+=40000;if(img.parentElement&&img.parentElement.className&&(img.parentElement.className.includes('product')||img.parentElement.className.includes('item')))score+=35000;imgData.push({src:src,score:score});break;}}}imgData.sort(function(a,b){return b.score-a.score;});for(var j=0;j<Math.min(imgData.length,5);j++){images.push(imgData[j].src);}}catch(e){}var data={title:title,url:url,content:content,images:images,timestamp:new Date().toISOString()};localStorage.setItem('pageeditor_extracted_data',JSON.stringify(data));var pageUrl=window.location.hostname.includes('localhost')?'http://localhost:3001':'https://pageeditor.sharetox.com';var popup=window.open(pageUrl,'pageeditor','width=1200,height=800,scrollbars=yes,resizable=yes');if(!popup){alert('数据已提取！请手动打开 PageEditor 页面。');}else{setTimeout(function(){try{popup.postMessage({type:'PAGEEDITOR_DATA',data:data},'*');}catch(e){}},2000);}})()"
+                style={{
+                  display: 'inline-block',
+                  background: '#f97316',
+                  color: 'white',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '6px',
+                  textDecoration: 'none',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  cursor: 'move',
+                  transition: 'all 0.2s',
+                  border: 'none'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#ea580c';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  const tooltip = e.currentTarget.parentElement?.querySelector('.bookmark-tooltip') as HTMLElement;
+                  if (tooltip) tooltip.style.display = 'block';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#f97316';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  const tooltip = e.currentTarget.parentElement?.querySelector('.bookmark-tooltip') as HTMLElement;
+                  if (tooltip) tooltip.style.display = 'none';
+                }}
+              >
+                一键生成导购页
+              </a>
+              <div
+                className="bookmark-tooltip"
+                style={{
+                  display: 'none',
+                  position: 'absolute',
+                  top: '100%',
+                  right: '0',
+                  marginTop: '8px',
+                  background: '#1f2937',
+                  color: 'white',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                  fontSize: '0.75rem',
+                  lineHeight: '1.4',
+                  minWidth: '280px',
+                  zIndex: 1000
+                }}
+              >
+                <div style={{ fontWeight: 600, marginBottom: '8px' }}>
+                  📖 书签工具使用方法：
+                </div>
+                <div>
+                  1️⃣ 将按钮拖拽到浏览器书签栏<br/>
+                  2️⃣ 打开任意电商商品页面<br/>
+                  3️⃣ 点击书签栏中的按钮<br/>
+                  4️⃣ 自动提取商品信息并生成导购页
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              style={{
+                background: '#f3f4f6',
+                border: '1px solid #d1d5db',
+                padding: '0.5rem',
+                borderRadius: '6px',
+                cursor: 'pointer'
+              }}
+            >
+              ⚙️ 设置
+            </button>
+          </div>
         </div>
         
         {/* Settings Panel */}
@@ -1212,23 +1277,8 @@ function ClaudeApp() {
             fontSize: '0.875rem',
             marginBottom: '1.5rem'
           }}>
-输入商品网址自动分析，或者使用书签工具一键提取。书签方式能够完美绕过登录限制，获取完整商品信息
+            输入商品网址自动分析生成导购页面
           </p>
-          
-          <div style={{
-            background: '#f0f9ff',
-            border: '1px solid #0ea5e9',
-            borderRadius: '8px',
-            padding: '1rem',
-            marginBottom: '1.5rem',
-            fontSize: '0.875rem',
-            color: '#0c4a6e'
-          }}>
-            🤖 <strong>智能分析流程：</strong> 输入网址 → 新窗口打开 → 手动关闭窗口 → AI分析 ｜ 或者 → 使用书签工具一键提取 → 直接分析
-            <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', opacity: '0.8' }}>
-              ✨ 支持淘宝、京东、天猫、亚马逊等主流电商平台。推荐使用书签工具，能完美绕过登录限制并提取完整内容
-            </div>
-          </div>
           
           <div style={{
             maxWidth: '600px',
@@ -1338,117 +1388,6 @@ function ClaudeApp() {
               <span>✨ AI智能分析</span>
             </div>
             
-            {/* 书签工具区域 */}
-            <div style={{
-              marginTop: '2rem',
-              padding: '1.5rem',
-              background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
-              border: '1px solid #0ea5e9',
-              borderRadius: '12px',
-              textAlign: 'center'
-            }}>
-              <h3 style={{
-                fontSize: '1.1rem',
-                fontWeight: 600,
-                color: '#0c4a6e',
-                margin: '0 0 1rem 0'
-              }}>
-                📖 更好的选择：使用书签工具
-              </h3>
-              <div style={{
-                background: '#f0fdf4',
-                border: '1px solid #22c55e',
-                borderRadius: '8px',
-                padding: '1rem',
-                margin: '0 0 1rem 0'
-              }}>
-                <p style={{
-                  fontSize: '0.875rem',
-                  color: '#15803d',
-                  margin: '0 0 0.5rem 0',
-                  fontWeight: 600
-                }}>
-                  ✅ 智能图片筛选已优化！
-                </p>
-                <p style={{
-                  fontSize: '0.8rem',
-                  color: '#166534',
-                  margin: '0',
-                  lineHeight: '1.4'
-                }}>
-                  新增智能图片质量过滤，自动排除小图标、Logo、导航按钮等非商品图片。针对京东、淘宝、天猫等平台优化识别算法，确保提取真正的商品主图。
-                </p>
-              </div>
-              
-              <div style={{
-                display: 'inline-block',
-                background: '#f8fafc',
-                border: '2px dashed #3b82f6',
-                borderRadius: '8px',
-                padding: '1rem',
-                margin: '0.5rem 0'
-              }}>
-                <p style={{
-                  fontSize: '0.8rem',
-                  color: '#374151',
-                  margin: '0 0 0.5rem 0'
-                }}>
-                  将下面的链接拖拽到浏览器书签栏，或右键"添加到收藏夹"：
-                </p>
-                <a href="javascript:(function(){var title=document.title||'';var url=window.location.href;var content='';var selectors=['.BasicContent--wrapper','.DetailModule--module','.ItemContent','.BasicContent','.tb-detail','.detail-content','.product-detail','.item-detail','.product-info','.goods-detail','[class*=product]','[class*=item]','[class*=goods]','[id*=product]','.tm-detail','.tb-property','.J_DivItemDesc','#J_DivItemDesc','main','.main','#main','.content','#content'];var extracted=false;for(var i=0;i<selectors.length&&!extracted;i++){try{var elements=document.querySelectorAll(selectors[i]);for(var k=0;k<elements.length;k++){var element=elements[k];if(element){var text=element.innerText||element.textContent||'';if(text.length>200){content=text;extracted=true;break;}}}}catch(e){}}if(!extracted){try{var allText=document.body.innerText||document.body.textContent||'';var lines=allText.split('\\n').filter(function(line){return line.trim().length>10&&!line.match(/登录|注册|购物车|客服|帮助|首页|导航|菜单|搜索|热门|推荐|收藏|关注|分享/);});content=lines.slice(0,20).join(' ');}catch(e){content='淘宝商品 优质商品 精选好货 快速配送';}}content=content.replace(/\\s+/g,' ').replace(/登录|注册|购物车|客服|帮助|首页|导航|菜单|搜索|热门|推荐|收藏|关注|分享|立即购买|加入购物车|现货|有库存|满减|优惠券|领券|关店|店铺/g,'').trim();if(content.length>8000){content=content.substring(0,8000);}if(content.length<50){content='淘宝精选商品 优质好货 品质保证 快速配送 用户好评推荐';}var images=[];try{var imgs=document.querySelectorAll('img');var imgData=[];for(var i=0;i<imgs.length;i++){var img=imgs[i];var srcs=[img.src,img.getAttribute('data-src'),img.getAttribute('data-original'),img.getAttribute('data-lazy-src'),img.getAttribute('data-ks-lazyload'),img.getAttribute('data-lazy')];for(var s=0;s<srcs.length;s++){var src=srcs[s];if(src&&src.indexOf('http')===0&&src.indexOf('data:')!==0){var rect=img.getBoundingClientRect();var score=rect.width*rect.height;if(rect.width<100||rect.height<100)score=0;if(src.includes('logo')||src.includes('banner')||src.includes('icon')||src.includes('button')||src.includes('nav')||src.includes('menu'))score=0;if(src.includes('jfs.jd.com'))score+=80000;if(src.includes('400x400')||src.includes('800x800')||src.includes('_400x400')||src.includes('_800x800'))score+=100000;if(src.includes('product')||src.includes('item')||src.includes('goods')||src.includes('TB1')||src.includes('TB2'))score+=50000;if(img.alt&&(img.alt.includes('商品')||img.alt.includes('产品')))score+=30000;if(src.includes('.taobao.')||src.includes('.tmall.')||src.includes('.alicdn.'))score+=20000;if(img.className&&(img.className.includes('product')||img.className.includes('item')||img.className.includes('goods')))score+=40000;if(img.parentElement&&img.parentElement.className&&(img.parentElement.className.includes('product')||img.parentElement.className.includes('item')))score+=35000;imgData.push({src:src,score:score});break;}}}imgData.sort(function(a,b){return b.score-a.score;});for(var j=0;j<Math.min(imgData.length,5);j++){images.push(imgData[j].src);}}catch(e){}var data={title:title,url:url,content:content,images:images,timestamp:new Date().toISOString()};localStorage.setItem('pageeditor_extracted_data',JSON.stringify(data));var pageUrl=window.location.hostname.includes('localhost')?'http://localhost:3001':'https://pageeditor.sharetox.com';var popup=window.open(pageUrl,'pageeditor','width=1200,height=800,scrollbars=yes,resizable=yes');if(!popup){alert('数据已提取！请手动打开 PageEditor 页面。');}else{setTimeout(function(){try{popup.postMessage({type:'PAGEEDITOR_DATA',data:data},'*');}catch(e){}},2000);}})()"
-                style={{
-                  display: 'inline-block',
-                  background: '#3b82f6',
-                  color: 'white',
-                  padding: '0.75rem 1.5rem',
-                  borderRadius: '8px',
-                  textDecoration: 'none',
-                  fontSize: '0.875rem',
-                  fontWeight: 600,
-                  cursor: 'move',
-                  transition: 'all 0.2s'
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.background = '#2563eb';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.background = '#3b82f6';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
-                >
-                  📖 PageEditor 提取器
-                </a>
-              </div>
-              
-              <div style={{
-                fontSize: '0.75rem',
-                color: '#6b7280',
-                marginTop: '1rem',
-                lineHeight: '1.4'
-              }}>
-                <div style={{ textAlign: 'left' }}>
-                  <p style={{ margin: '0 0 0.5rem 0', fontWeight: 600 }}>
-                    🎯 使用步骤：
-                  </p>
-                  <p style={{ margin: '0 0 0.3rem 0' }}>
-                    1️⃣ 拖拽上面的蓝色按钮到浏览器书签栏
-                  </p>
-                  <p style={{ margin: '0 0 0.3rem 0' }}>
-                    2️⃣ 访问任意电商商品页面（淘宝、京东等）
-                  </p>
-                  <p style={{ margin: '0 0 0.3rem 0' }}>
-                    3️⃣ 在商品页面点击书签栏中的"PageEditor 提取器"
-                  </p>
-                  <p style={{ margin: '0 0 0.5rem 0' }}>
-                    4️⃣ 自动提取并打开PageEditor，生成导购页
-                  </p>
-                  <p style={{ margin: '0', color: '#059669', fontWeight: 600 }}>
-                    ✨ 核心优势：无跨域问题、利用登录状态、提取完整内容、一键完成
-                  </p>
-                </div>
-              </div>
-            </div>
         </div>
       </div>
 
