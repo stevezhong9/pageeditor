@@ -610,7 +610,7 @@ function ClaudeApp() {
         const successMsg: ChatMessage = {
           id: Date.now().toString(),
           role: 'assistant',
-          content: `🎉 页面发布成功！\n\n📍 访问地址: ${result.url}\n🔗 完整URL: ${window.location.origin}${result.url}\n📁 生成文件: ${result.files?.length || 0} 个\n\n页面已成功部署，您可以立即访问！点击上方链接或直接访问 ${window.location.origin}${result.url}`,
+          content: `🎉 页面发布成功！\n\n📍 访问地址: ${result.url}\n📁 生成文件: ${result.files?.length || 0} 个\n\n页面已成功部署，您可以立即访问！\n\n🔗 [点击新标签页打开](${result.url})`,
           timestamp: Date.now()
         };
         setMessages(prev => [...prev, successMsg]);
@@ -949,6 +949,55 @@ function ClaudeApp() {
         images: []
       };
     }
+  };
+
+  // 渲染消息内容，支持Markdown链接
+  const renderMessageContent = (content: string) => {
+    // 简单的Markdown链接解析：[text](url)
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = linkRegex.exec(content)) !== null) {
+      // 添加链接前的文本
+      if (match.index > lastIndex) {
+        parts.push(content.substring(lastIndex, match.index));
+      }
+      
+      // 添加链接
+      const [, linkText, url] = match;
+      parts.push(
+        <a
+          key={match.index}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            color: '#3b82f6',
+            textDecoration: 'underline',
+            fontWeight: 600
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.color = '#1d4ed8';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.color = '#3b82f6';
+          }}
+        >
+          {linkText}
+        </a>
+      );
+      
+      lastIndex = linkRegex.lastIndex;
+    }
+    
+    // 添加剩余文本
+    if (lastIndex < content.length) {
+      parts.push(content.substring(lastIndex));
+    }
+    
+    return parts.length > 0 ? parts : content;
   };
 
   // 初始化已发布页面列表和API设置
@@ -1593,7 +1642,7 @@ function ClaudeApp() {
                     lineHeight: '1.5',
                     marginTop: '4px'
                   }}>
-                    {message.content}
+                    {renderMessageContent(message.content)}
                   </div>
                   
                   <div style={{ 
