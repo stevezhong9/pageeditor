@@ -343,15 +343,21 @@ function ClaudeApp() {
   useEffect(() => {
     setPublishedPages(PublishService.getPublishedPages());
     
-    // 从 localStorage 读取 API 设置
+    // 从环境变量或 localStorage 读取 API 设置
+    const envApiKey = import.meta.env.VITE_CLAUDE_API_KEY;
     const savedApiKey = localStorage.getItem('claude-api-key');
     const savedUseClaudeAPI = localStorage.getItem('use-claude-api') === 'true';
     
-    if (savedApiKey) {
-      setApiKey(savedApiKey);
+    // 优先使用环境变量中的 API Key
+    const finalApiKey = envApiKey || savedApiKey;
+    
+    if (finalApiKey) {
+      setApiKey(finalApiKey);
+      console.log('🔑 API Key loaded from:', envApiKey ? 'environment variable' : 'localStorage');
     }
-    if (savedUseClaudeAPI) {
-      setUseClaudeAPI(savedUseClaudeAPI);
+    
+    if (savedUseClaudeAPI || envApiKey) {
+      setUseClaudeAPI(true);
     }
   }, []);
 

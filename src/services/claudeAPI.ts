@@ -37,19 +37,10 @@ export class ClaudeAPIService {
     currentPageData: any
   ): Promise<PatchOperation[]> {
     
-    // Check if running in development mode
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      console.warn('🚨 CORS Warning: Direct API calls from localhost may be blocked by browser CORS policy');
-      
-      // Offer alternative solutions
-      throw new Error(`CORS限制: 浏览器阻止了从localhost直接调用Claude API。
-
-解决方案:
-1. 使用演示模式继续体验功能
-2. 部署到生产环境 (Vercel/Netlify)
-3. 使用代理服务器或后端API
-
-当前正在使用模拟AI模式...`);
+    // 尝试真实的 API 调用，不管是否在开发环境
+    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (isDevelopment) {
+      console.warn('🚨 开发环境: 尝试调用 Claude API，可能遇到 CORS 问题');
     }
 
     const systemPrompt = this.buildSystemPrompt(userMessage, currentPageData);
