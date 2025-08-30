@@ -23,12 +23,19 @@ interface ProductImageGalleryProps {
 
 function ProductImageGallery({ images, style }: ProductImageGalleryProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(null);
   
   if (!images || images.length === 0) {
     return null;
   }
 
   const currentImage = images[currentImageIndex];
+
+  const handleImageLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = event.currentTarget;
+    const aspectRatio = img.naturalWidth / img.naturalHeight;
+    setImageAspectRatio(aspectRatio);
+  };
 
   return (
     <div style={{ ...style, width: '100%' }}>
@@ -37,15 +44,24 @@ function ProductImageGallery({ images, style }: ProductImageGalleryProps) {
         marginBottom: '1rem',
         borderRadius: '12px',
         overflow: 'hidden',
-        boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
+        boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+        backgroundColor: '#f8fafc',
+        maxWidth: '500px',
+        margin: '0 auto 1rem auto',
+        // Dynamic height based on aspect ratio
+        minHeight: imageAspectRatio ? 
+          (imageAspectRatio > 1.5 ? '250px' : imageAspectRatio < 0.8 ? '400px' : '300px') : '300px'
       }}>
         <img
           src={currentImage.url}
           alt={currentImage.alt}
+          onLoad={handleImageLoad}
           style={{
             width: '100%',
-            height: '300px',
-            objectFit: 'cover',
+            height: 'auto',
+            maxHeight: imageAspectRatio && imageAspectRatio < 0.8 ? '600px' : '500px',
+            minHeight: '200px',
+            objectFit: 'contain',
             display: 'block',
             transition: 'opacity 0.3s ease'
           }}
@@ -76,7 +92,10 @@ function ProductImageGallery({ images, style }: ProductImageGalleryProps) {
                 opacity: currentImageIndex === index ? 1 : 0.7,
                 transform: currentImageIndex === index ? 'scale(1)' : 'scale(0.95)'
               }}
-              onClick={() => setCurrentImageIndex(index)}
+              onClick={() => {
+                setCurrentImageIndex(index);
+                setImageAspectRatio(null); // Reset aspect ratio for new image
+              }}
               onMouseEnter={(e) => {
                 if (currentImageIndex !== index) {
                   e.currentTarget.style.opacity = '0.9';
@@ -96,8 +115,9 @@ function ProductImageGallery({ images, style }: ProductImageGalleryProps) {
                 style={{
                   width: '80px',
                   height: '80px',
-                  objectFit: 'cover',
-                  display: 'block'
+                  objectFit: 'contain',
+                  display: 'block',
+                  backgroundColor: '#f8fafc'
                 }}
               />
             </div>
