@@ -429,7 +429,7 @@ export class BlobPublishService {
                 margin-right: auto;
             ">${layout.hero?.subhead || '为您提供最优质的服务体验'}</p>
             
-            <button onclick="handleCTAClick()" style="
+            <button onclick="handleProductCTAClick()" style="
                 background: ${layout.hero?.ctaColor || brandConfig.colors.primary};
                 color: white;
                 border: none;
@@ -493,8 +493,8 @@ export class BlobPublishService {
     <script>
         ${jsContent}
         
-        // 页面特定功能
-        function handleCTAClick() {${
+        // 页面特定功能 - 产品CTA处理
+        function handleProductCTAClick() {${
             productUrl ? 
             `
             window.open('${productUrl}', '_blank');
