@@ -358,11 +358,7 @@ function ClaudeApp() {
         throw new Error(validation.message);
       }
 
-      // 检查页面是否已存在
-      const exists = await FilePublishService.checkPageExists(customPageName.trim());
-      if (exists) {
-        throw new Error('页面名称已存在，请选择其他名称');
-      }
+      // 页面存在性检查由API端点处理
 
       const result = await FilePublishService.publishPage(pageData, brandConfig, {
         pageName: customPageName.trim(),

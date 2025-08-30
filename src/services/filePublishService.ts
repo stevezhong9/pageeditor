@@ -81,6 +81,9 @@ export class FilePublishService {
       };
 
       // 调用API创建文件
+      console.log('🚀 Publishing page:', pageName);
+      console.log('📁 Files to create:', Object.keys(files).length);
+      
       const response = await fetch('/api/publish-page', {
         method: 'POST',
         headers: {
@@ -92,9 +95,22 @@ export class FilePublishService {
         })
       });
 
+      console.log('📥 API Response status:', response.status);
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+        console.error('❌ API Error:', errorData);
+        
+        // 处理特殊的错误状态码
+        if (response.status === 409) {
+          throw new Error(`页面 "${pageName}" 已存在，请选择其他名称`);
+        } else if (response.status === 400) {
+          throw new Error(errorData.error || '请求参数错误，请检查页面名称格式');
+        } else if (response.status === 500) {
+          throw new Error('服务器内部错误，请稍后重试');
+        }
+        
+        throw new Error(errorData.error || `发布失败 (${response.status}): ${response.statusText}`);
       }
 
       const result = await response.json();
@@ -234,15 +250,11 @@ export class FilePublishService {
   }
 
   /**
-   * 检查页面是否已存在
+   * 检查页面是否已存在（简化版本）
    */
   static async checkPageExists(pageName: string): Promise<boolean> {
-    try {
-      const response = await fetch(`/${pageName}/`, { method: 'HEAD' });
-      return response.ok;
-    } catch {
-      return false;
-    }
+    // 暂时返回false，让服务端API处理存在性检查
+    return false;
   }
 
   /**
