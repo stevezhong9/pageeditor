@@ -93,10 +93,19 @@ function ClaudeApp() {
 
   // Initialize Claude service when API key is provided
   const initializeClaudeService = (apiKey: string) => {
+    console.log('Initializing Claude service with API key:', {
+      hasKey: !!apiKey,
+      keyLength: apiKey ? apiKey.length : 0,
+      startsCorrectly: apiKey ? apiKey.startsWith('sk-ant-api03-') : false,
+      firstChars: apiKey ? apiKey.substring(0, 20) : 'none'
+    });
+    
     if (apiKey && apiKey.startsWith('sk-ant-api03-')) {
       claudeService = new ClaudeAPIService(apiKey);
+      console.log('Claude service initialized successfully');
       return true;
     }
+    console.log('Claude service initialization failed - invalid API key format');
     return false;
   };
 
@@ -123,7 +132,16 @@ function ClaudeApp() {
       if (useClaudeAPI && apiKey) {
         // Initialize Claude service if not already done
         if (!claudeService || !initializeClaudeService(apiKey)) {
-          throw new Error('无效的 API Key: 请确保输入正确的 Claude API Key (sk-ant-api03-...)');
+          console.log('Failed to initialize Claude service. API Key details:', {
+            apiKey: apiKey ? `${apiKey.substring(0, 20)}...` : 'null',
+            length: apiKey ? apiKey.length : 0,
+            startsCorrectly: apiKey ? apiKey.startsWith('sk-ant-api03-') : false
+          });
+          throw new Error(`无效的 API Key: 请确保输入正确的 Claude API Key (sk-ant-api03-...)
+          
+当前 API Key 信息:
+- 长度: ${apiKey ? apiKey.length : 0}
+- 格式检查: ${apiKey ? apiKey.startsWith('sk-ant-api03-') ? '✅ 正确' : '❌ 错误' : '❌ 空值'}`);
         }
         
         // Use real Claude API
