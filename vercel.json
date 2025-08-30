@@ -4,8 +4,31 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/pages/([^/]+)/index.html",
+      "destination": "/api/view-page?page=$1"
+    },
+    {
       "source": "/((?!api).*)",
       "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/view-page",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/html; charset=utf-8"
+        },
+        {
+          "key": "Cache-Control", 
+          "value": "public, max-age=3600"
+        },
+        {
+          "key": "Content-Disposition",
+          "value": "inline"
+        }
+      ]
     }
   ]
 }
