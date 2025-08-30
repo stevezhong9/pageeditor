@@ -4,6 +4,7 @@ import { PageLayout, BrandConfig } from '../types/schema';
 interface PublishOptions {
   pageName: string;
   includeSources?: boolean;
+  productUrl?: string;
 }
 
 interface PublishResult {
@@ -65,7 +66,7 @@ export class BlobPublishService {
       }
 
       // 生成页面内容
-      const htmlContent = this.generateStandaloneHTML(layout, brandConfig, pageName);
+      const htmlContent = this.generateStandaloneHTML(layout, brandConfig, pageName, options.productUrl);
       const cssContent = DownloadService.generateCSS(brandConfig);
       const jsContent = DownloadService.generateJS();
 
@@ -319,7 +320,8 @@ export class BlobPublishService {
   private static generateStandaloneHTML(
     layout: PageLayout, 
     brandConfig: BrandConfig, 
-    pageName: string
+    pageName: string,
+    productUrl?: string
   ): string {
     const cssContent = DownloadService.generateCSS(brandConfig);
     const jsContent = DownloadService.generateJS();
@@ -493,8 +495,12 @@ export class BlobPublishService {
         
         // 页面特定功能
         function handleCTAClick() {
-            alert('感谢您的关注！这是由 PageEditor 生成的导购页面。');
-            console.log('CTA clicked on page:', '${pageName}');
+            ${productUrl ? 
+                `window.open('${productUrl}', '_blank');
+                console.log('Redirecting to product page:', '${productUrl}');` :
+                `alert('感谢您的关注！这是由 PageEditor 生成的导购页面。');
+                console.log('CTA clicked on page:', '${pageName}');`
+            }
         }
         
         // 图片画廊功能

@@ -186,6 +186,9 @@ function ClaudeApp() {
   const [productUrl, setProductUrl] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   
+  // Current product URL from bookmark extraction
+  const [currentProductUrl, setCurrentProductUrl] = useState('');
+  
   // Brand configuration
   const brandConfig = {
     name: "Premium Skincare",
@@ -297,6 +300,9 @@ function ClaudeApp() {
       if (result.success && result.pageData) {
         // 更新页面数据
         setPageData(result.pageData);
+        
+        // 保存商品URL
+        setCurrentProductUrl(data.url || '');
         
         // 显示成功消息
         const imageProcessing = result.extractedInfo?.imageProcessing;
@@ -614,7 +620,8 @@ function ClaudeApp() {
 
       const result = await BlobPublishService.publishPage(pageData, brandConfig, {
         pageName: customPageName.trim(),
-        includeSources: true
+        includeSources: true,
+        productUrl: currentProductUrl
       });
 
       if (result.success) {
