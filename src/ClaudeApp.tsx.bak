@@ -1834,16 +1834,227 @@ function ClaudeApp() {
         </div>
       </div>
 
-      <PublishDialog
-        showDialog={showPublishDialog}
-        customPageName={customPageName}
-        setCustomPageName={setCustomPageName}
-        isPublishing={isPublishing}
-        onPublish={handleConfirmPublish}
-        onClose={() => setShowPublishDialog(false)}
-        validatePageName={validatePageName}
-        publishedPages={publishedPages}
-      />      </div>
+      {/* 发布页面对话框 */}
+      {showPublishDialog && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            maxWidth: '500px',
+            width: '100%',
+            padding: '2rem',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
+            animation: 'fadeInUp 0.3s ease-out'
+          }}>
+            <h2 style={{
+              fontSize: '1.5rem',
+              fontWeight: 600,
+              color: '#1f2937',
+              marginBottom: '1rem',
+              textAlign: 'center'
+            }}>
+              🚀 发布导购页面
+            </h2>
+            
+            <p style={{
+              color: '#6b7280',
+              fontSize: '0.875rem',
+              marginBottom: '1.5rem',
+              textAlign: 'center'
+            }}>
+              请输入自定义页面名称，页面将发布到网站根目录下的独立页面
+            </p>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                color: '#374151',
+                marginBottom: '0.5rem'
+              }}>
+                页面名称 *
+              </label>
+              <input
+                type="text"
+                value={customPageName}
+                onChange={(e) => setCustomPageName(e.target.value)}
+                placeholder="例如: my-skincare-page"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#d1d5db';
+                  e.target.style.boxShadow = 'none';
+                }}
+              />
+              {customPageName && (() => {
+                const validation = validatePageName(customPageName);
+                return !validation.valid ? (
+                  <p style={{
+                    color: '#ef4444',
+                    fontSize: '0.75rem',
+                    marginTop: '0.5rem',
+                    margin: '0.5rem 0 0 0'
+                  }}>
+                    ❌ {validation.message}
+                  </p>
+                ) : (
+                  <p style={{
+                    color: '#10b981',
+                    fontSize: '0.75rem',
+                    marginTop: '0.5rem',
+                    margin: '0.5rem 0 0 0'
+                  }}>
+                    ✅ 页面名称可用
+                  </p>
+                );
+              })()}
+              <p style={{
+                color: '#6b7280',
+                fontSize: '0.75rem',
+                marginTop: '0.5rem',
+                margin: '0.5rem 0 0 0'
+              }}>
+                📍 发布地址预览: {window.location.origin}/{customPageName || '[页面名称]'}
+              </p>
+              <p style={{
+                color: '#6b7280',
+                fontSize: '0.7rem',
+                marginTop: '0.25rem',
+                margin: '0.25rem 0 0 0',
+                fontStyle: 'italic'
+              }}>
+                💡 名称规则: 2-30个字符，以字母开头，只能包含字母、数字、连字符(-)和下划线(_)
+              </p>
+            </div>
+
+            {publishedPages.length > 0 && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  color: '#374151',
+                  marginBottom: '0.5rem'
+                }}>
+                  已发布的页面:
+                </label>
+                <div style={{
+                  maxHeight: '100px',
+                  overflowY: 'auto',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '6px',
+                  padding: '0.5rem'
+                }}>
+                  {publishedPages.map((pageName, index) => (
+                    <div key={index} style={{
+                      fontSize: '0.75rem',
+                      color: '#6b7280',
+                      padding: '0.25rem',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <span>📄 {pageName}</span>
+                      <span style={{ color: '#9ca3af' }}>pages/{pageName}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div style={{
+              display: 'flex',
+              gap: '0.75rem',
+              justifyContent: 'flex-end'
+            }}>
+              <button
+                onClick={() => {
+                  setShowPublishDialog(false);
+                  setCustomPageName('');
+                }}
+                disabled={isPublishing}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  background: 'white',
+                  color: '#374151',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  cursor: isPublishing ? 'not-allowed' : 'pointer',
+                  opacity: isPublishing ? 0.5 : 1
+                }}
+              >
+                取消
+              </button>
+              <button
+                onClick={handleConfirmPublish}
+                disabled={isPublishing || !customPageName.trim() || !validatePageName(customPageName).valid}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  border: 'none',
+                  borderRadius: '8px',
+                  background: (isPublishing || !customPageName.trim() || !validatePageName(customPageName).valid) 
+                    ? '#9ca3af' 
+                    : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                  color: 'white',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  cursor: (isPublishing || !customPageName.trim() || !validatePageName(customPageName).valid) 
+                    ? 'not-allowed' 
+                    : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                {isPublishing ? (
+                  <>
+                    <div style={{ 
+                      width: '14px', 
+                      height: '14px', 
+                      border: '2px solid transparent',
+                      borderTop: '2px solid white',
+                      borderRadius: '50%',
+                      animation: `spin 1s linear infinite`
+                    }} />
+                    发布中...
+                  </>
+                ) : (
+                  <>
+                    🚀 确认发布
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      </div>
     </div>
   );
 }
