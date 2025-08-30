@@ -119,13 +119,13 @@ export class BlobPublishService {
       const result = await response.json();
       console.log('✅ Publish success:', result);
       
-      // Convert blob URL to friendly format
-      const friendlyUrl = `https://pageeditor.sharetox.com/pages/${pageName}/index.html`;
+      // Use the actual blob URL directly for now
+      const actualUrl = result.url;
       
       return {
         success: true,
-        url: friendlyUrl,
-        message: `页面已成功发布到 Vercel Blob！\n\n🔗 访问地址: ${friendlyUrl}\n📁 创建文件: ${result.files?.length || 0} 个\n\n页面已永久存储，可随时访问！`,
+        url: actualUrl,
+        message: `页面已成功发布到 Vercel Blob！\n\n🔗 访问地址: ${actualUrl}\n📁 创建文件: ${result.files?.length || 0} 个\n\n页面已永久存储，可随时访问！`,
         files: result.files,
         urls: result.urls
       };
