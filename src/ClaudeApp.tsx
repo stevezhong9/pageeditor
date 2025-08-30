@@ -1763,7 +1763,23 @@ function ClaudeApp() {
               <div style={{ 
                 display: 'grid', 
                 gap: '1rem',
-                gridTemplateColumns: window.innerWidth > 768 ? 'repeat(auto-fit, minmax(250px, 1fr))' : '1fr'
+                gridTemplateColumns: (() => {
+                  if (window.innerWidth <= 768) return '1fr';
+                  const uspCount = pageData.usps.length;
+                  if (uspCount === 1) return '1fr';
+                  if (uspCount === 2) return 'repeat(2, 1fr)';
+                  if (uspCount === 3) return 'repeat(3, 1fr)';
+                  if (uspCount === 4) return 'repeat(2, 1fr)';
+                  if (uspCount === 5) return 'repeat(3, 1fr)';
+                  return 'repeat(auto-fit, minmax(250px, 1fr))';
+                })(),
+                maxWidth: (() => {
+                  const uspCount = pageData.usps.length;
+                  if (uspCount === 1) return '400px';
+                  if (uspCount === 2) return '800px';
+                  return '100%';
+                })(),
+                margin: '0 auto'
               }}>
                 {pageData.usps.map((usp, index) => (
                   <div

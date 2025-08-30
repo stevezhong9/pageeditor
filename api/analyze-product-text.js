@@ -297,23 +297,32 @@ function generateBasicPageData(info, processedImages = []) {
   }
 
   const usps = [];
+  
+  // 根据提取到的特性数量决定USPs数量，最少2个，最多5个
+  const targetUspCount = Math.max(2, Math.min(5, info.features.length || 3));
+  
   if (info.features.length > 0) {
-    info.features.slice(0, 3).forEach((feature, index) => {
+    info.features.slice(0, targetUspCount).forEach((feature, index) => {
       usps.push({
-        icon: categoryIcons[index] || '⭐',
+        icon: categoryIcons[index % categoryIcons.length] || '⭐',
         text: feature.length > 30 ? feature.slice(0, 30) + '...' : feature
       });
     });
   }
 
-  // Fill with default USPs if not enough features
-  while (usps.length < 3) {
+  // 如果特性不够，用默认的填充到目标数量
+  if (usps.length < targetUspCount) {
     const defaultUsps = [
       { icon: categoryIcons[0], text: '优质材料，品质保证' },
       { icon: categoryIcons[1], text: '快速配送，售后无忧' },
-      { icon: categoryIcons[2], text: '用户好评，值得信赖' }
+      { icon: categoryIcons[2], text: '用户好评，值得信赖' },
+      { icon: categoryIcons[0], text: '专业服务，贴心体验' },
+      { icon: categoryIcons[1], text: '正品保障，放心选择' }
     ];
-    usps.push(defaultUsps[usps.length]);
+    
+    while (usps.length < targetUspCount && usps.length < 5) {
+      usps.push(defaultUsps[usps.length]);
+    }
   }
 
   return {
@@ -324,7 +333,7 @@ function generateBasicPageData(info, processedImages = []) {
       ctaColor: '#f97316',
       image: processedImages.length > 0 ? processedImages[0].blobUrl : null
     },
-    usps: usps.slice(0, 3),
+    usps: usps,
     images: processedImages.map(img => ({
       url: img.blobUrl,
       originalUrl: img.originalUrl,

@@ -239,10 +239,26 @@ function generateBasicPageData(info) {
       ctaColor: '#f97316',
       image: info.images.length > 0 ? info.images[0] : 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=800&h=400&fit=crop'
     },
-    usps: [
-      { icon: '✨', text: '优质材料，品质保证' },
-      { icon: '🚀', text: '快速配送，售后无忧' },
-      { icon: '🏆', text: '用户好评，值得信赖' }
-    ]
+    usps: (() => {
+      // 根据产品信息决定USPs数量(2-5个)
+      const titleLength = info.title?.length || 0;
+      const descLength = info.description?.length || 0;
+      const imageCount = info.images?.length || 0;
+      
+      let targetCount = 3; // 默认3个
+      if ((titleLength > 30 || descLength > 200) && imageCount >= 3) targetCount = 4;
+      if (descLength > 500 && imageCount >= 4) targetCount = 5;
+      if (titleLength < 15 && descLength < 100) targetCount = 2;
+      
+      const uspOptions = [
+        { icon: '✨', text: '优质材料，品质保证' },
+        { icon: '🚀', text: '快速配送，售后无忧' },
+        { icon: '🏆', text: '用户好评，值得信赖' },
+        { icon: '💎', text: '专业服务，贴心体验' },
+        { icon: '🎯', text: '正品保障，安心选择' }
+      ];
+      
+      return uspOptions.slice(0, targetCount);
+    })()
   };
 }

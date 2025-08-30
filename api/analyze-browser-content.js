@@ -316,11 +316,26 @@ function generateBrowserFallbackAnalysis(content, url, title) {
         ctaColor: '#f97316',
         image: null
       },
-      usps: [
-        { icon: categoryIcons[0], text: '精选品质，值得信赖' },
-        { icon: categoryIcons[1], text: '快速配送，售后保障' },
-        { icon: categoryIcons[2], text: '用户好评，口碑推荐' }
-      ]
+      usps: (() => {
+        // 根据内容长度和复杂度决定USPs数量(2-5个)
+        const contentLength = content.length;
+        const titleLength = productTitle.length;
+        
+        let targetCount = 3; // 默认3个
+        if (contentLength > 2000 || titleLength > 50) targetCount = 4;
+        if (contentLength > 5000) targetCount = 5;
+        if (contentLength < 500) targetCount = 2;
+        
+        const defaultUsps = [
+          { icon: categoryIcons[0], text: '精选品质，值得信赖' },
+          { icon: categoryIcons[1], text: '快速配送，售后保障' },
+          { icon: categoryIcons[2], text: '用户好评，口碑推荐' },
+          { icon: categoryIcons[0], text: '专业服务，贴心体验' },
+          { icon: categoryIcons[1], text: '正品保障，放心选择' }
+        ];
+        
+        return defaultUsps.slice(0, targetCount);
+      })()
     },
     productInfo: {
       title: productTitle,
