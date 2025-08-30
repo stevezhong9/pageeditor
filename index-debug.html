@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Debug Page</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px;
+            background: #f0f8ff;
+        }
+        .status { 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            background: white;
+        }
+        .error { background: #ffebee; }
+        .success { background: #e8f5e8; }
+    </style>
+</head>
+<body>
+    <h1>Debug Information</h1>
+    <div id="status">Checking...</div>
+    
+    <script>
+        const status = document.getElementById('status');
+        
+        // Check if server is running
+        status.innerHTML = `
+            <div class="status">🔍 Checking React app...</div>
+            <div class="status">Server: ${window.location.origin}</div>
+            <div class="status">User Agent: ${navigator.userAgent}</div>
+        `;
+        
+        // Try to load main JS
+        fetch('/src/main.tsx')
+            .then(r => {
+                if (r.ok) {
+                    status.innerHTML += '<div class="status success">✅ main.tsx loaded</div>';
+                    return r.text();
+                } else {
+                    throw new Error('Failed to load main.tsx: ' + r.status);
+                }
+            })
+            .then(code => {
+                status.innerHTML += `<div class="status success">📄 Code length: ${code.length}</div>`;
+            })
+            .catch(e => {
+                status.innerHTML += `<div class="status error">❌ Error: ${e.message}</div>`;
+            });
+            
+        // Check for console errors
+        let errorCount = 0;
+        const originalError = console.error;
+        console.error = function(...args) {
+            errorCount++;
+            status.innerHTML += `<div class="status error">🐛 Console Error ${errorCount}: ${args.join(' ')}</div>`;
+            originalError.apply(console, args);
+        };
+        
+        // Check if React root exists
+        setTimeout(() => {
+            const root = document.getElementById('root');
+            if (root) {
+                status.innerHTML += '<div class="status success">✅ Root element found</div>';
+                status.innerHTML += `<div class="status">Root content: "${root.innerHTML.substring(0, 100)}"</div>`;
+            } else {
+                status.innerHTML += '<div class="status error">❌ Root element not found</div>';
+            }
+        }, 2000);
+        
+        // Test links
+        const testLinks = [
+            { name: 'Simple App', url: '/?app=simple' },
+            { name: 'Test App', url: '/?app=test' },
+            { name: 'Main App', url: '/' }
+        ];
+        
+        status.innerHTML += '<div class="status"><h3>Test Links:</h3>';
+        testLinks.forEach(link => {
+            status.innerHTML += `<a href="${link.url}" style="display:block; padding:5px; color:blue;">${link.name}: ${link.url}</a>`;
+        });
+        status.innerHTML += '</div>';
+    </script>
+</body>
+</html>

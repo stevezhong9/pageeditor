@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Patch Landing Page Editor Demo</title>
+    <script src="https://cdn.jsdelivr.net/npm/fast-json-patch@3.1.1/dist/fast-json-patch.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+            background: #f8fafc;
+        }
+        .header {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 2rem; 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 2rem; 
+        }
+        .panel {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .panel-header {
+            background: #f1f5f9;
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 600;
+        }
+        .panel-content { padding: 1rem; }
+        .btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 0.25rem;
+            font-size: 0.875rem;
+        }
+        .btn:hover { background: #2563eb; }
+        .btn-example {
+            background: #64748b;
+            display: block;
+            width: 100%;
+            text-align: left;
+            margin: 0.25rem 0;
+        }
+        .btn-example:hover { background: #475569; }
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-family: 'Monaco', monospace;
+            font-size: 0.875rem;
+            resize: vertical;
+        }
+        .json-display {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 6px;
+            font-family: 'Monaco', monospace;
+            font-size: 0.75rem;
+            white-space: pre;
+            overflow: auto;
+            max-height: 300px;
+            border: 1px solid #e2e8f0;
+        }
+        .hero {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .hero h1 {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+        .hero p {
+            font-size: 1.125rem;
+            color: #6b7280;
+            margin-bottom: 1.5rem;
+        }
+        .hero button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .hero img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        .usps {
+            display: grid;
+            gap: 1rem;
+        }
+        .usp {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 6px;
+        }
+        .usp-icon {
+            font-size: 1.5rem;
+            width: 2.5rem;
+            height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #e0e7ff;
+            border-radius: 50%;
+        }
+        .error {
+            color: #dc2626;
+            background: #fef2f2;
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            border: 1px solid #fecaca;
+        }
+        @media (max-width: 768px) {
+            .container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <h1 style="font-size: 1.5rem; color: #1f2937;">JSON Patch Landing Page Editor</h1>
+        <p style="color: #6b7280; margin-top: 0.5rem;">Demonstrate "Continuous Chat Editing → Patch → Incremental Rendering"</p>
+    </header>
+
+    <div class="container">
+        <!-- Left Panel: Patch Editor -->
+        <div class="panel">
+            <div class="panel-header">JSON Patch Editor</div>
+            <div class="panel-content">
+                <!-- Quick Examples -->
+                <div style="margin-bottom: 1rem;">
+                    <h3 style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem;">Quick Examples:</h3>
+                    <button class="btn btn-example" onclick="loadExample(0)">Change headline</button>
+                    <button class="btn btn-example" onclick="loadExample(1)">Add USP</button>
+                    <button class="btn btn-example" onclick="loadExample(2)">Update CTA</button>
+                    <button class="btn btn-example" onclick="loadExample(3)">Change subhead</button>
+                </div>
+
+                <!-- Patch Input -->
+                <textarea id="patchInput" placeholder='Enter JSON Patch array, e.g.: [{"op":"replace","path":"/hero/headline","value":"New Title"}]'></textarea>
+                
+                <div style="margin-top: 1rem;">
+                    <button class="btn" onclick="applyPatch()">Apply Patch</button>
+                    <button class="btn" onclick="clearInput()" style="background: #64748b;">Clear</button>
+                </div>
+
+                <div id="errorMessage"></div>
+
+                <!-- Current JSON -->
+                <div style="margin-top: 1.5rem;">
+                    <h3 style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem;">Current Page JSON:</h3>
+                    <div id="jsonDisplay" class="json-display"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Live Preview -->
+        <div class="panel">
+            <div class="panel-header">Live Preview</div>
+            <div class="panel-content">
+                <!-- Hero Section -->
+                <div class="hero">
+                    <h1 id="heroHeadline">Revolutionary Skincare Experience</h1>
+                    <p id="heroSubhead">Using unique scientific formula for professional care</p>
+                    <button id="heroCta">Try Now</button>
+                    <img id="heroImage" src="https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=800&h=400&fit=crop" alt="Product">
+                </div>
+
+                <!-- USPs -->
+                <div>
+                    <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">Key Benefits</h2>
+                    <div id="uspsList" class="usps"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initial page data
+        let pageData = {
+            hero: {
+                headline: "Revolutionary Skincare Experience",
+                subhead: "Using unique scientific formula for professional care",
+                cta: "Try Now",
+                image: "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=800&h=400&fit=crop"
+            },
+            usps: [
+                { icon: "✨", text: "7-day visible improvement" },
+                { icon: "🧪", text: "Scientific formula, safe and gentle" },
+                { icon: "🏆", text: "Trusted by 100k+ users" }
+            ]
+        };
+
+        // Example patches
+        const examples = [
+            [{"op":"replace","path":"/hero/headline","value":"🌟 AI-Powered Beauty Revolution"}],
+            [{"op":"add","path":"/usps/-","value":{"icon":"🌱","text":"100% Eco-friendly packaging"}}],
+            [{"op":"replace","path":"/hero/cta","value":"Buy Now"}],
+            [{"op":"replace","path":"/hero/subhead","value":"Revolutionary skincare powered by AI technology"}]
+        ];
+
+        // Load example patch
+        function loadExample(index) {
+            const patch = examples[index];
+            document.getElementById('patchInput').value = JSON.stringify(patch, null, 2);
+        }
+
+        // Clear input
+        function clearInput() {
+            document.getElementById('patchInput').value = '';
+            document.getElementById('errorMessage').innerHTML = '';
+        }
+
+        // Apply patch
+        function applyPatch() {
+            const input = document.getElementById('patchInput').value.trim();
+            const errorDiv = document.getElementById('errorMessage');
+            
+            if (!input) {
+                showError('Please enter a JSON patch');
+                return;
+            }
+
+            try {
+                const patches = JSON.parse(input);
+                console.log('Applying patches:', patches);
+                
+                // Apply patch using fast-json-patch library
+                const result = jsonpatch.applyPatch(JSON.parse(JSON.stringify(pageData)), patches);
+                pageData = result.newDocument;
+                
+                // Update UI
+                updatePreview();
+                updateJsonDisplay();
+                
+                // Clear error
+                errorDiv.innerHTML = '';
+                
+                // Clear input
+                document.getElementById('patchInput').value = '';
+                
+                console.log('Patch applied successfully');
+                
+            } catch (error) {
+                showError('Invalid JSON patch: ' + error.message);
+                console.error('Patch error:', error);
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            document.getElementById('errorMessage').innerHTML = 
+                `<div class="error">❌ ${message}</div>`;
+        }
+
+        // Update preview
+        function updatePreview() {
+            // Update hero section
+            document.getElementById('heroHeadline').textContent = pageData.hero.headline;
+            document.getElementById('heroSubhead').textContent = pageData.hero.subhead;
+            document.getElementById('heroCta').textContent = pageData.hero.cta;
+            document.getElementById('heroImage').src = pageData.hero.image;
+
+            // Update USPs
+            const uspsList = document.getElementById('uspsList');
+            uspsList.innerHTML = '';
+            
+            pageData.usps.forEach(usp => {
+                const uspDiv = document.createElement('div');
+                uspDiv.className = 'usp';
+                uspDiv.innerHTML = `
+                    <div class="usp-icon">${usp.icon}</div>
+                    <div>${usp.text}</div>
+                `;
+                uspsList.appendChild(uspDiv);
+            });
+        }
+
+        // Update JSON display
+        function updateJsonDisplay() {
+            document.getElementById('jsonDisplay').textContent = JSON.stringify(pageData, null, 2);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updatePreview();
+            updateJsonDisplay();
+            console.log('Demo initialized successfully');
+        });
+
+        // Handle Enter key in textarea
+        document.getElementById('patchInput').addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                applyPatch();
+            }
+        });
+    </script>
+</body>
+</html>

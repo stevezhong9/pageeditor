@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Page</title>
+    <script>
+        // 检查错误
+        window.addEventListener('error', function(e) {
+            console.error('Global error:', e.error, e.filename, e.lineno);
+            document.body.innerHTML = '<h1>Error: ' + e.message + '</h1><p>File: ' + e.filename + ':' + e.lineno + '</p>';
+        });
+        
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('Unhandled promise rejection:', e.reason);
+            document.body.innerHTML += '<h2>Promise Error: ' + e.reason + '</h2>';
+        });
+    </script>
+</head>
+<body>
+    <h1>Debugging...</h1>
+    <p>Check console for errors</p>
+    <script>
+        console.log('Debug page loaded');
+        // 尝试加载主应用
+        fetch('/src/main.tsx').then(r => r.text()).then(code => {
+            console.log('Main app code length:', code.length);
+        }).catch(e => {
+            console.error('Failed to load main app:', e);
+        });
+    </script>
+</body>
+</html>

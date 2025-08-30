@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page Editor</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="toolbar">
+            <h1>Page Editor</h1>
+            <div class="toolbar-buttons">
+                <button id="bold-btn" class="btn">B</button>
+                <button id="italic-btn" class="btn">I</button>
+                <button id="underline-btn" class="btn">U</button>
+                <button id="save-btn" class="btn primary">Save</button>
+                <button id="load-btn" class="btn">Load</button>
+            </div>
+        </header>
+        
+        <main class="editor-container">
+            <div id="editor" contenteditable="true" class="editor">
+                <h2>Welcome to Page Editor</h2>
+                <p>Start editing your content here...</p>
+            </div>
+        </main>
+        
+        <footer class="status-bar">
+            <span id="word-count">Words: 0</span>
+            <span id="char-count">Characters: 0</span>
+        </footer>
+    </div>
+    
+    <script src="../js/editor.js"></script>
+</body>
+</html>
