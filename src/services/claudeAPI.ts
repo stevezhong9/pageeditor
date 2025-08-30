@@ -144,6 +144,15 @@ ${JSON.stringify(currentPageData, null, 2)}
 
       if (response.status === 401) {
         throw new Error('API Key无效: 请检查您的Claude API Key是否正确');
+      } else if (response.status === 404 && isProduction) {
+        throw new Error(`API代理未找到 (404): Vercel函数可能未正确部署
+
+请检查:
+• Vercel控制台是否显示最新部署成功  
+• /api/claude.js 文件是否正确上传
+• 部署日志是否有错误
+
+暂时可以切换到演示模式继续体验功能。`);
       } else if (response.status === 429) {
         throw new Error('API调用频率超限: 请稍后再试或升级您的API计划');
       } else if (response.status === 500) {

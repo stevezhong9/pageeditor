@@ -1,5 +1,6 @@
 // Vercel Serverless Function to proxy Claude API calls
 export default async function handler(req, res) {
+  console.log('🚀 Claude API proxy called:', req.method, req.url);
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
