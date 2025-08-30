@@ -15,6 +15,111 @@ interface ChatMessage {
   patches?: any[];
 }
 
+// ProductImageGallery Component
+interface ProductImageGalleryProps {
+  images: Array<{ url: string; alt: string; originalUrl?: string }>;
+  style?: React.CSSProperties;
+}
+
+function ProductImageGallery({ images, style }: ProductImageGalleryProps) {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
+  if (!images || images.length === 0) {
+    return null;
+  }
+
+  const currentImage = images[currentImageIndex];
+
+  return (
+    <div style={{ ...style, width: '100%' }}>
+      {/* Main Image */}
+      <div style={{
+        marginBottom: '1rem',
+        borderRadius: '12px',
+        overflow: 'hidden',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
+      }}>
+        <img
+          src={currentImage.url}
+          alt={currentImage.alt}
+          style={{
+            width: '100%',
+            height: '300px',
+            objectFit: 'cover',
+            display: 'block',
+            transition: 'opacity 0.3s ease'
+          }}
+        />
+      </div>
+
+      {/* Thumbnail Gallery */}
+      {images.length > 1 && (
+        <div style={{
+          display: 'flex',
+          gap: '0.5rem',
+          justifyContent: 'center',
+          flexWrap: 'wrap',
+          maxWidth: '100%',
+          overflowX: 'auto',
+          padding: '0.5rem 0'
+        }}>
+          {images.map((image, index) => (
+            <div
+              key={index}
+              style={{
+                cursor: 'pointer',
+                borderRadius: '8px',
+                overflow: 'hidden',
+                border: currentImageIndex === index ? '3px solid #3b82f6' : '3px solid transparent',
+                transition: 'all 0.2s ease',
+                flexShrink: 0,
+                opacity: currentImageIndex === index ? 1 : 0.7,
+                transform: currentImageIndex === index ? 'scale(1)' : 'scale(0.95)'
+              }}
+              onClick={() => setCurrentImageIndex(index)}
+              onMouseEnter={(e) => {
+                if (currentImageIndex !== index) {
+                  e.currentTarget.style.opacity = '0.9';
+                  e.currentTarget.style.transform = 'scale(0.98)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (currentImageIndex !== index) {
+                  e.currentTarget.style.opacity = '0.7';
+                  e.currentTarget.style.transform = 'scale(0.95)';
+                }
+              }}
+            >
+              <img
+                src={image.url}
+                alt={`${image.alt} - 缩略图 ${index + 1}`}
+                style={{
+                  width: '80px',
+                  height: '80px',
+                  objectFit: 'cover',
+                  display: 'block'
+                }}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Image Counter */}
+      {images.length > 1 && (
+        <div style={{
+          textAlign: 'center',
+          marginTop: '0.5rem',
+          fontSize: '0.875rem',
+          color: '#6b7280'
+        }}>
+          {currentImageIndex + 1} / {images.length}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Initialize API services
 let claudeService: ClaudeAPIService | null = null;
 const mockService = new MockAIService();
@@ -1750,18 +1855,12 @@ function ClaudeApp() {
                 {pageData.hero.cta}
               </button>
               
-              <img
-                src={pageData.hero.image}
-                alt="Product"
+              {/* Product Image Gallery */}
+              <ProductImageGallery 
+                images={pageData.images || (pageData.hero.image ? [{ url: pageData.hero.image, alt: '商品图片' }] : [])}
                 style={{
-                  width: '100%',
-                  maxWidth: '600px',
-                  height: '300px',
-                  objectFit: 'cover',
-                  borderRadius: '12px',
                   margin: '2rem auto 0',
-                  display: 'block',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
+                  maxWidth: '600px'
                 }}
               />
             </div>

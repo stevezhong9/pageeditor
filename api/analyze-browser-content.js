@@ -74,6 +74,13 @@ export default async function handler(request, response) {
     if (processedImages.length > 0 && processedImages[0].blobUrl) {
       finalPageData.hero.image = processedImages[0].blobUrl;
     }
+    
+    // Add all processed images to pageData for gallery display
+    finalPageData.images = processedImages.map(img => ({
+      url: img.blobUrl,
+      originalUrl: img.originalUrl,
+      alt: '商品图片'
+    }));
 
     console.log('✅ Browser content analysis successful');
 

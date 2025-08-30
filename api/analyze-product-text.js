@@ -254,6 +254,13 @@ async function generatePageDataWithAI(extractedInfo, sourceUrl, processedImages 
             pageData.hero.image = processedImages[0].blobUrl;
           }
           
+          // Add all processed images to pageData for gallery display
+          pageData.images = processedImages.map(img => ({
+            url: img.blobUrl,
+            originalUrl: img.originalUrl,
+            alt: '商品图片'
+          }));
+          
           console.log('✅ AI analysis completed successfully');
           return pageData;
         }
@@ -317,6 +324,11 @@ function generateBasicPageData(info, processedImages = []) {
       ctaColor: '#f97316',
       image: processedImages.length > 0 ? processedImages[0].blobUrl : null
     },
-    usps: usps.slice(0, 3)
+    usps: usps.slice(0, 3),
+    images: processedImages.map(img => ({
+      url: img.blobUrl,
+      originalUrl: img.originalUrl,
+      alt: '商品图片'
+    }))
   };
 }
