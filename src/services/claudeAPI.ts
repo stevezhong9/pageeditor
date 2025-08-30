@@ -84,11 +84,13 @@ ${JSON.stringify(currentPageData, null, 2)}
 3. path使用JSON Pointer格式:
    - /hero/headline (修改标题)
    - /hero/subhead (修改副标题)
-   - /hero/cta (修改按钮)
+   - /hero/cta (修改按钮文字)
+   - /hero/ctaColor (修改按钮颜色，使用十六进制颜色代码如#f97316)
    - /usps/0/text (修改第一个卖点文本)
    - /usps/- (在数组末尾添加新卖点)
-4. 确保修改内容专业、吸引人且符合导购页面的商业目标
-5. 优先使用replace操作修改现有内容，用add操作添加新内容
+4. 颜色代码对应: 橙色=#f97316, 红色=#dc2626, 绿色=#16a34a, 蓝色=#3b82f6, 紫色=#9333ea
+5. 确保修改内容专业、吸引人且符合导购页面的商业目标
+6. 优先使用replace操作修改现有内容，用add操作添加新内容
 
 用户请求: ${userMessage}
 
@@ -231,12 +233,42 @@ export class MockAIService {
       }
     }
     
-    if (message.includes('按钮') && message.includes('购买')) {
-      patches.push({
-        op: 'replace',
-        path: '/hero/cta',
-        value: '立即购买'
-      });
+    if (message.includes('按钮')) {
+      if (message.includes('购买')) {
+        patches.push({
+          op: 'replace',
+          path: '/hero/cta',
+          value: '立即购买'
+        });
+      }
+      if (message.includes('橙色') || message.includes('橙')) {
+        patches.push({
+          op: 'replace',
+          path: '/hero/ctaColor',
+          value: '#f97316'
+        });
+      }
+      if (message.includes('红色') || message.includes('红')) {
+        patches.push({
+          op: 'replace',
+          path: '/hero/ctaColor',
+          value: '#dc2626'
+        });
+      }
+      if (message.includes('绿色') || message.includes('绿')) {
+        patches.push({
+          op: 'replace',
+          path: '/hero/ctaColor',
+          value: '#16a34a'
+        });
+      }
+      if (message.includes('蓝色') || message.includes('蓝')) {
+        patches.push({
+          op: 'replace',
+          path: '/hero/ctaColor',
+          value: '#3b82f6'
+        });
+      }
     }
     
     if (message.includes('卖点') || message.includes('优势')) {

@@ -23,6 +23,7 @@ function ClaudeApp() {
       headline: "Revolutionary Skincare Experience",
       subhead: "Using unique scientific formula for professional care",
       cta: "Try Now",
+      ctaColor: "#f97316", // 橙色
       image: "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=800&h=400&fit=crop"
     },
     usps: [
@@ -205,7 +206,8 @@ function ClaudeApp() {
         const changes = patches.map((patch: any) => {
           if (patch.path.includes('/hero/headline')) return '• 更新了主标题';
           if (patch.path.includes('/hero/subhead')) return '• 更新了副标题';
-          if (patch.path.includes('/hero/cta')) return '• 更新了行动按钮';
+          if (patch.path.includes('/hero/cta') && !patch.path.includes('ctaColor')) return '• 更新了行动按钮文案';
+          if (patch.path.includes('/hero/ctaColor')) return '• 更新了行动按钮颜色';
           if (patch.path.includes('/usps')) {
             if (patch.op === 'add') return `• 添加了新卖点: ${patch.value.text}`;
             if (patch.op === 'replace') return '• 修改了卖点内容';
@@ -599,9 +601,89 @@ function ClaudeApp() {
             borderBottom: '1px solid #e2e8f0',
             fontWeight: 600,
             borderTopLeftRadius: '8px',
-            borderTopRightRadius: '8px'
+            borderTopRightRadius: '8px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
           }}>
-            💬 AI 对话编辑
+            <span>💬 AI 对话编辑</span>
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              <span 
+                style={{
+                  cursor: 'help',
+                  fontSize: '1rem',
+                  color: '#6b7280',
+                  padding: '4px',
+                  borderRadius: '50%',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = '#3b82f6';
+                  e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)';
+                  const tooltip = e.currentTarget.nextElementSibling as HTMLElement;
+                  if (tooltip) tooltip.style.display = 'block';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = '#6b7280';
+                  e.currentTarget.style.background = 'transparent';
+                  const tooltip = e.currentTarget.nextElementSibling as HTMLElement;
+                  if (tooltip) tooltip.style.display = 'none';
+                }}
+              >
+                ℹ️
+              </span>
+              <div
+                style={{
+                  display: 'none',
+                  position: 'absolute',
+                  top: '100%',
+                  right: '0',
+                  marginTop: '8px',
+                  background: '#1f2937',
+                  color: 'white',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                  fontSize: '0.75rem',
+                  lineHeight: '1.4',
+                  minWidth: '320px',
+                  maxWidth: '400px',
+                  zIndex: 1000,
+                  whiteSpace: 'pre-line'
+                }}
+              >
+                {`✅ 可以修改的元素：
+• 主标题和副标题
+• 按钮文字和颜色
+• 卖点内容（可修改/新增）
+
+❌ 不能修改的元素：
+• 页面布局和样式
+• 图片和背景
+• 字体和间距
+
+🎨 支持的按钮颜色：
+橙色、红色、绿色、蓝色、紫色
+
+💬 示例指令：
+"把标题改得更科技感"
+"按钮颜色改为红色"
+"添加环保卖点"`}
+                <div style={{
+                  position: 'absolute',
+                  top: '-6px',
+                  right: '12px',
+                  width: '0',
+                  height: '0',
+                  borderLeft: '6px solid transparent',
+                  borderRight: '6px solid transparent',
+                  borderBottom: '6px solid #1f2937'
+                }}></div>
+              </div>
+            </div>
           </div>
           
           {/* Messages */}
@@ -954,7 +1036,7 @@ function ClaudeApp() {
                 {pageData.hero.subhead}
               </p>
               <button style={{
-                background: '#3b82f6',
+                background: pageData.hero.ctaColor || '#3b82f6',
                 color: 'white',
                 border: 'none',
                 padding: '1rem 2rem',
@@ -962,17 +1044,19 @@ function ClaudeApp() {
                 fontWeight: 600,
                 borderRadius: '10px',
                 cursor: 'pointer',
-                boxShadow: '0 4px 6px rgba(59, 130, 246, 0.3)',
+                boxShadow: `0 4px 6px ${pageData.hero.ctaColor || '#3b82f6'}40`,
                 transform: 'translateY(0)',
                 transition: 'all 0.2s'
               }}
               onMouseOver={(e) => {
+                const color = pageData.hero.ctaColor || '#3b82f6';
                 e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 6px 12px rgba(59, 130, 246, 0.4)';
+                e.currentTarget.style.boxShadow = `0 6px 12px ${color}66`;
               }}
               onMouseOut={(e) => {
+                const color = pageData.hero.ctaColor || '#3b82f6';
                 e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 4px 6px rgba(59, 130, 246, 0.3)';
+                e.currentTarget.style.boxShadow = `0 4px 6px ${color}40`;
               }}>
                 {pageData.hero.cta}
               </button>
