@@ -1,5 +1,14 @@
 import { put, list, del } from '@vercel/blob';
 
+// Check if Blob is properly configured
+function checkBlobConfiguration() {
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!token) {
+    throw new Error('BLOB_READ_WRITE_TOKEN is not configured. Please set up Vercel Blob Storage.');
+  }
+  return true;
+}
+
 export default async function handler(request, response) {
   // Enable CORS
   response.setHeader('Access-Control-Allow-Origin', '*');
@@ -12,6 +21,9 @@ export default async function handler(request, response) {
   }
 
   try {
+    // Check Blob configuration first
+    checkBlobConfiguration();
+    
     console.log('📥 Blob publish request:', request.method);
 
     if (request.method === 'POST') {
