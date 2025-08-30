@@ -118,7 +118,7 @@ export class FilePublishService {
       return {
         success: true,
         url: `/${pageName}`,
-        message: `页面已成功发布！访问地址: ${window.location.origin}/${pageName}`,
+        message: `页面发布成功 (演示模式)！\n\n在生产环境中，页面将会部署到: ${window.location.origin}/${pageName}\n\n当前为演示版本，实际文件创建需要额外配置。`,
         files: Object.keys(files)
       };
 
