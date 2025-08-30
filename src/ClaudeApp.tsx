@@ -617,6 +617,13 @@ function ClaudeApp() {
       }
 
       // 页面存在性检查由API端点处理
+      
+      // Debug: 检查当前商品URL
+      console.log('🔍 发布调试信息:', {
+        pageName: customPageName.trim(),
+        currentProductUrl: currentProductUrl,
+        hasProductUrl: !!currentProductUrl
+      });
 
       const result = await BlobPublishService.publishPage(pageData, brandConfig, {
         pageName: customPageName.trim(),

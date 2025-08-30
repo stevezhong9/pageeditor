@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Button Test</title>
+</head>
+<body>
+    <h1>Button Test</h1>
+    
+    <!-- Test button with simple alert -->
+    <button onclick="alert('Simple test works!')" style="margin: 10px; padding: 10px; background: blue; color: white;">
+        Simple Alert Test
+    </button>
+    
+    <!-- Test button with function call -->
+    <button onclick="testFunction()" style="margin: 10px; padding: 10px; background: green; color: white;">
+        Function Call Test
+    </button>
+    
+    <!-- Test button similar to our generated one -->
+    <button onclick="handleProductCTAClick()" style="margin: 10px; padding: 10px; background: orange; color: white;">
+        Product CTA Test
+    </button>
+    
+    <script>
+        function testFunction() {
+            alert('Function call works!');
+            console.log('Function called successfully');
+        }
+        
+        function handleProductCTAClick() {
+            window.open('https://www.taobao.com', '_blank');
+            console.log('Redirecting to product page: https://www.taobao.com');
+        }
+        
+        console.log('Script loaded');
+    </script>
+</body>
+</html>

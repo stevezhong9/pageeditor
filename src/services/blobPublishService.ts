@@ -66,6 +66,12 @@ export class BlobPublishService {
       }
 
       // 生成页面内容
+      console.log('🔍 BlobPublishService调试:', {
+        pageName,
+        productUrl: options.productUrl,
+        hasProductUrl: !!options.productUrl
+      });
+      
       const htmlContent = this.generateStandaloneHTML(layout, brandConfig, pageName, options.productUrl);
       const cssContent = DownloadService.generateCSS(brandConfig);
       const jsContent = DownloadService.generateJS();
@@ -323,6 +329,12 @@ export class BlobPublishService {
     pageName: string,
     productUrl?: string
   ): string {
+    console.log('🔍 generateStandaloneHTML调试:', {
+      pageName,
+      productUrl,
+      hasProductUrl: !!productUrl
+    });
+    
     const cssContent = DownloadService.generateCSS(brandConfig);
     const jsContent = DownloadService.generateJS();
     
