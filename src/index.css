@@ -131,6 +131,15 @@ body {
   }
 }
 
+.loading-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid transparent;
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
 /* Message animation classes */
 .message-user {
   animation: slideInRight 0.3s ease-out;

@@ -1640,14 +1640,7 @@ function ClaudeApp() {
               >
                 {isDownloading ? (
                   <>
-                    <div style={{ 
-                      width: '14px', 
-                      height: '14px', 
-                      border: '2px solid transparent',
-                      borderTop: '2px solid white',
-                      borderRadius: '50%',
-                      animation: `spin 1s linear infinite`
-                    }} />
+                    <div className="loading-spinner" />
                     打包中...
                   </>
                 ) : (
@@ -2033,14 +2026,7 @@ function ClaudeApp() {
               >
                 {isPublishing ? (
                   <>
-                    <div style={{ 
-                      width: '14px', 
-                      height: '14px', 
-                      border: '2px solid transparent',
-                      borderTop: '2px solid white',
-                      borderRadius: '50%',
-                      animation: `spin 1s linear infinite`
-                    }} />
+                    <div className="loading-spinner" />
                     发布中...
                   </>
                 ) : (
