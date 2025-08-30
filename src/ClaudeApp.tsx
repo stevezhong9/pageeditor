@@ -1777,6 +1777,7 @@ function ClaudeApp() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
