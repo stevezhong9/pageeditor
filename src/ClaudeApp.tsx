@@ -432,7 +432,7 @@ function ClaudeApp() {
       const processingMsg: ChatMessage = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: `🔍 正在智能分析商品页面: ${url.href}\n\n🌐 步骤1: 在新窗口打开商品页面\n📄 步骤2: 从浏览器提取页面内容\n🤖 步骤3: AI分析商品信息\n🖼️步骤4: 处理商品图片\n✨ 步骤5: 生成导购页面`,
+        content: `🔍 正在智能分析商品页面: ${url.href}\n\n🌐 步骤1: 在新窗口打开商品页面\n⏰ 步骤2: 等待页面加载完成\n👍 步骤3: 手动关闭窗口即可开始分析`,
         timestamp: Date.now()
       };
       setMessages(prev => [...prev, processingMsg]);
@@ -444,38 +444,78 @@ function ClaudeApp() {
         throw new Error('无法打开新窗口，请允许弹窗后重试');
       }
 
-      // 等待页面加载完成后提取内容
+      // 等待页面加载并允许用户手动关闭窗口
       await new Promise((resolve, reject) => {
         let attempts = 0;
-        const maxAttempts = 60; // 最多等待60秒
+        const maxAttempts = 120; // 最多等待120秒（给用户更多时间）
+        let lastExtractedData: any = null;
+        let hasTriedExtraction = false;
+        
+        // 更新提示消息
+        const updateMessage: ChatMessage = {
+          id: (Date.now() + 0.5).toString(),
+          role: 'assistant',
+          content: `🔍 已在新窗口打开商品页面\n\n✨ 请等待页面完全加载，确认可以看到商品信息后，手动关闭该窗口即可开始分析\n\n📝 系统将自动提取页面内容并进行AI分析`,
+          timestamp: Date.now()
+        };
+        setMessages(prev => [...prev.slice(0, -1), updateMessage]); // 替换最后一条消息
         
         const checkAndExtract = () => {
           attempts++;
           
+          // 如果窗口被关闭，尝试使用最后一次提取的数据
           if (popup.closed) {
-            reject(new Error('页面窗口被关闭'));
+            if (lastExtractedData && lastExtractedData.content && lastExtractedData.content.length > 50) {
+              console.log('👍 用户手动关闭窗口，使用已提取的内容');
+              resolve(lastExtractedData);
+            } else {
+              console.log('⚠️ 窗口关闭但没有提取到有效内容');
+              reject(new Error('页面内容提取不完整，请确保页面完全加载后再关闭窗口'));
+            }
             return;
           }
           
           if (attempts > maxAttempts) {
-            popup.close();
-            reject(new Error('页面加载超时，请手动刷新页面后重试'));
+            // 超时后尝试使用已提取的内容
+            if (lastExtractedData && lastExtractedData.content && lastExtractedData.content.length > 50) {
+              popup.close();
+              resolve(lastExtractedData);
+            } else {
+              popup.close();
+              reject(new Error('页面加载超时，请稍后重试或手动关闭窗口'));
+            }
             return;
           }
 
           try {
-            // 检查页面是否加载完成
-            if (popup.document && popup.document.readyState === 'complete') {
-              // 提取页面内容
+            // 尝试提取页面内容
+            if (popup.document) {
               const extractedData = extractContentFromPage(popup.document, url.href);
-              popup.close();
-              resolve(extractedData);
-            } else {
-              setTimeout(checkAndExtract, 1000);
+              
+              // 如果提取到有效内容，保存起来
+              if (extractedData.content && extractedData.content.length > 50) {
+                lastExtractedData = extractedData;
+                hasTriedExtraction = true;
+                console.log('✅ 已提取页面内容，等待用户关闭窗口');
+              }
+              
+              // 如果页面已加载完成且有内容，提示用户可以关闭窗口
+              if (popup.document.readyState === 'complete' && lastExtractedData && !hasTriedExtraction) {
+                hasTriedExtraction = true;
+                const readyMessage: ChatMessage = {
+                  id: (Date.now() + 0.7).toString(),
+                  role: 'assistant', 
+                  content: `✅ 页面已加载完成！\n\n👍 已提取到商品信息（${lastExtractedData.content.length}字符）\n🖼️ 发现 ${lastExtractedData.images?.length || 0} 张商品图片\n\n🔒 请手动关闭商品页面窗口，系统将立即开始分析`,
+                  timestamp: Date.now()
+                };
+                setMessages(prev => [...prev.slice(0, -1), readyMessage]);
+              }
             }
-          } catch (e) {
-            // 跨域限制，使用备用方案
+            
             setTimeout(checkAndExtract, 1000);
+          } catch (e) {
+            // 跨域限制或其他错误，继续等待
+            setTimeout(checkAndExtract, 1500);
           }
         };
         
@@ -524,7 +564,7 @@ function ClaudeApp() {
       const errorMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `❌ 生成失败: ${error instanceof Error ? error.message : '未知错误'}\n\n建议解决方案:\n• 请允许浏览器弹窗\n• 确保已登录相关电商平台\n• 等待页面完全加载后再关闭\n• 尝试手动刷新商品页面\n\n您也可以继续使用AI对话功能手动编辑页面。`,
+        content: `❌ 生成失败: ${error instanceof Error ? error.message : '未知错误'}\n\n📝 正确操作步骤:\n1️⃣ 点击“智能分析”按钮\n2️⃣ 允许浏览器弹窗打开商品页面\n3️⃣ 等待页面完全加载，确认能看到商品信息\n4️⃣ 手动关闭商品页面窗口\n5️⃣ 系统自动分析生成导购页\n\n您也可以继续使用AI对话功能手动编辑页面。`,
         timestamp: Date.now()
       };
       setMessages(prev => [...prev, errorMsg]);
@@ -806,9 +846,9 @@ function ClaudeApp() {
             fontSize: '0.875rem',
             color: '#0c4a6e'
           }}>
-            🤖 <strong>智能分析流程：</strong> 输入网址 → 新窗口打开 → 浏览器提取 → AI分析 → 图片处理 → 生成导购页
+            🤖 <strong>智能分析流程：</strong> 输入网址 → 新窗口打开 → 等待加载 → 手动关闭窗口 → AI分析 → 生成导购页
             <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', opacity: '0.8' }}>
-              ✨ 支持淘宝、京东、天猫、亚马逊等主流电商平台，利用您的登录状态绕过访问限制
+              ✨ 支持淘宝、京东、天猫、亚马逊等主流电商平台，利用您的登录状态绕过访问限制，等待页面加载后手动关闭窗口即可
             </div>
           </div>
           
