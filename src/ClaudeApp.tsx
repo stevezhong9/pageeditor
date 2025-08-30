@@ -47,9 +47,12 @@ function ClaudeApp() {
   const [customPageName, setCustomPageName] = useState('');
   const [publishedPages, setPublishedPages] = useState<string[]>([]);
   
-  // Product URL form state
-  const [productUrl, setProductUrl] = useState('');
+  // Product content form state
+  const [productContent, setProductContent] = useState('');
+  const [sourceUrl, setSourceUrl] = useState('');
+  const [imageUrls, setImageUrls] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showBookmarkletTip, setShowBookmarkletTip] = useState(false);
   
   // Brand configuration
   const brandConfig = {
@@ -81,6 +84,82 @@ function ClaudeApp() {
   // Force scrollbar visibility on mount
   useEffect(() => {
     forceScrollbarVisibility();
+  }, []);
+
+  // Handle bookmarklet data
+  useEffect(() => {
+    // Listen for postMessage from bookmarklet
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'PAGEEDITOR_DATA') {
+        const data = event.data.data;
+        console.log('Received bookmarklet data:', data);
+        
+        // Fill form with extracted data
+        if (data.content) {
+          setProductContent(data.content);
+        }
+        if (data.url) {
+          setSourceUrl(data.url);
+        }
+        if (data.images && data.images.length > 0) {
+          setImageUrls(data.images.join('\n'));
+        }
+        
+        // Show success message
+        const successMsg: ChatMessage = {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: `🎉 已接收来自书签工具的商品数据！\n\n📄 文本内容: ${data.content ? Math.min(data.content.length, 500) + '...' : '无'}\n🖼️ 图片: ${data.images ? data.images.length : 0} 张\n🔗 来源: ${data.url || '未知'}\n\n您可以编辑内容后点击"智能生成导购页"。`,
+          timestamp: Date.now()
+        };
+        setMessages(prev => [...prev, successMsg]);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    
+    // Check localStorage for bookmarklet data
+    const checkStoredData = () => {
+      try {
+        const storedData = localStorage.getItem('pageeditor_extracted_data');
+        if (storedData) {
+          const data = JSON.parse(storedData);
+          console.log('Found stored bookmarklet data:', data);
+          
+          // Fill form with stored data
+          if (data.content) {
+            setProductContent(data.content);
+          }
+          if (data.url) {
+            setSourceUrl(data.url);
+          }
+          if (data.images && data.images.length > 0) {
+            setImageUrls(data.images.join('\n'));
+          }
+          
+          // Show success message
+          const successMsg: ChatMessage = {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: `🎉 已加载书签工具提取的商品数据！\n\n📄 文本内容: ${data.content ? Math.min(data.content.length, 500) + '...' : '无'}\n🖼️ 图片: ${data.images ? data.images.length : 0} 张\n🔗 来源: ${data.url || '未知'}\n\n您可以编辑内容后点击"智能生成导购页"。`,
+            timestamp: Date.now()
+          };
+          setMessages(prev => [successMsg]);
+          
+          // Clear stored data
+          localStorage.removeItem('pageeditor_extracted_data');
+        }
+      } catch (e) {
+        console.error('Error parsing stored bookmarklet data:', e);
+      }
+    };
+
+    // Check for stored data on mount
+    checkStoredData();
+    
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
   }, []);
 
   // Test function to add multiple messages (for testing scroll)
@@ -416,38 +495,39 @@ function ClaudeApp() {
     return BlobPublishService.validatePageName(name);
   };
 
-  // 处理商品网址生成导购页
-  const handleGenerateFromUrl = async () => {
-    if (!productUrl.trim()) return;
+  // 处理商品文本内容生成导购页
+  const handleGenerateFromContent = async () => {
+    if (!productContent.trim()) return;
     
     setIsGenerating(true);
     
     try {
-      // 验证URL格式
-      const url = new URL(productUrl.trim());
+      const sourceText = sourceUrl.trim() ? `来源: ${sourceUrl}` : '用户提供的商品信息';
       
       // 添加处理中消息到聊天
       const processingMsg: ChatMessage = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: `🔍 正在分析商品页面: ${url.href}\n\n正在抓取页面内容并提取商品信息...`,
+        content: `🔍 正在分析商品文本内容\n\n${sourceText}\n\n正在使用AI提取商品信息并生成导购页面...`,
         timestamp: Date.now()
       };
       setMessages(prev => [...prev, processingMsg]);
 
-      // 调用网页抓取API
-      const response = await fetch('/api/scrape-product', {
+      // 调用文本分析API
+      const response = await fetch('/api/analyze-product-text', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          url: productUrl.trim()
+          textContent: productContent.trim(),
+          sourceUrl: sourceUrl.trim() || null,
+          imageUrls: imageUrls.trim() ? imageUrls.split('\n').map(url => url.trim()).filter(url => url) : []
         })
       });
 
       if (!response.ok) {
-        throw new Error(`抓取失败: ${response.status} ${response.statusText}`);
+        throw new Error(`分析失败: ${response.status} ${response.statusText}`);
       }
 
       const result = await response.json();
@@ -460,13 +540,15 @@ function ClaudeApp() {
         const successMsg: ChatMessage = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: `🎉 导购页生成成功！\n\n✅ 已提取商品信息:\n• 标题: ${result.pageData.hero?.headline || '未提取'}\n• 描述: ${result.pageData.hero?.subhead || '未提取'}\n• 特性: ${result.pageData.usps?.length || 0} 个卖点\n\n您可以继续通过AI对话进行个性化调整！`,
+          content: `🎉 导购页生成成功！\n\n✅ 已分析商品信息:\n• 标题: ${result.pageData.hero?.headline || '未提取'}\n• 描述: ${result.pageData.hero?.subhead || '未提取'}\n• 特性: ${result.pageData.usps?.length || 0} 个卖点\n• 文本长度: ${result.extractedInfo?.textLength || 0} 字符\n\n您可以继续通过AI对话进行个性化调整！`,
           timestamp: Date.now()
         };
         setMessages(prev => [...prev, successMsg]);
         
-        // 清空URL输入
-        setProductUrl('');
+        // 清空内容输入
+        setProductContent('');
+        setSourceUrl('');
+        setImageUrls('');
       } else {
         throw new Error(result.message || '提取商品信息失败');
       }
@@ -478,7 +560,7 @@ function ClaudeApp() {
       const errorMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `❌ 生成失败: ${error instanceof Error ? error.message : '未知错误'}\n\n请检查:\n• URL格式是否正确\n• 网站是否可以访问\n• 页面是否包含商品信息\n\n您也可以继续使用AI对话功能手动编辑页面。`,
+        content: `❌ 生成失败: ${error instanceof Error ? error.message : '未知错误'}\n\n请检查:\n• 文本内容是否完整\n• 是否包含商品相关信息\n• 内容长度是否足够（至少50字符）\n\n您也可以继续使用AI对话功能手动编辑页面。`,
         timestamp: Date.now()
       };
       setMessages(prev => [...prev, errorMsg]);
@@ -683,33 +765,85 @@ function ClaudeApp() {
           <p style={{
             color: '#6b7280',
             fontSize: '0.875rem',
-            marginBottom: '1.5rem'
+            marginBottom: '1rem'
           }}>
-            输入商品页面网址，AI将自动抓取并生成专业的导购页面
+            复制粘贴商品页面内容，AI将自动分析并生成专业的导购页面
           </p>
           
           <div style={{
-            display: 'flex',
-            gap: '1rem',
-            alignItems: 'stretch',
-            maxWidth: '600px',
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '6px',
+            padding: '0.75rem',
+            marginBottom: '1rem',
+            fontSize: '0.8rem',
+            color: '#64748b'
+          }}>
+            💡 <strong>使用技巧：</strong> 访问商品页面 → 全选复制文本内容 → 粘贴到下方文本框 → 点击生成
+            {showBookmarkletTip && (
+              <div style={{ marginTop: '0.5rem' }}>
+                📖 或使用书签工具: <button 
+                  onClick={() => setShowBookmarkletTip(false)}
+                  style={{
+                    background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', textDecoration: 'underline'
+                  }}
+                >
+                  收起
+                </button>
+              </div>
+            )}
+          </div>
+          
+          <div style={{
+            maxWidth: '800px',
             margin: '0 auto'
           }}>
-            <input
-              type="url"
-              value={productUrl}
-              onChange={(e) => setProductUrl(e.target.value)}
-              placeholder="https://www.example.com/product/123"
+            <div style={{ marginBottom: '1rem' }}>
+              <input
+                type="url"
+                value={sourceUrl}
+                onChange={(e) => setSourceUrl(e.target.value)}
+                placeholder="商品页面网址（可选）"
+                disabled={isGenerating}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '6px',
+                  fontSize: '0.9rem',
+                  outline: 'none',
+                  transition: 'all 0.2s',
+                  boxSizing: 'border-box'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6';
+                  e.target.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#e5e7eb';
+                  e.target.style.boxShadow = 'none';
+                }}
+              />
+            </div>
+            
+            <textarea
+              value={productContent}
+              onChange={(e) => setProductContent(e.target.value)}
+              placeholder="请将商品页面的文本内容粘贴在此处，包括商品名称、描述、价格、特点等..."
               disabled={isGenerating}
+              rows={8}
               style={{
-                flex: 1,
-                padding: '0.875rem 1rem',
+                width: '100%',
+                padding: '1rem',
                 border: '2px solid #e5e7eb',
                 borderRadius: '8px',
                 fontSize: '1rem',
                 outline: 'none',
                 transition: 'all 0.2s',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                fontFamily: 'inherit',
+                resize: 'vertical',
+                minHeight: '120px'
               }}
               onFocus={(e) => {
                 e.target.style.borderColor = '#3b82f6';
@@ -719,25 +853,58 @@ function ClaudeApp() {
                 e.target.style.borderColor = '#e5e7eb';
                 e.target.style.boxShadow = 'none';
               }}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && !isGenerating && productUrl.trim()) {
-                  handleGenerateFromUrl();
-                }
-              }}
             />
             
+            <div style={{ marginTop: '1rem' }}>
+              <textarea
+                value={imageUrls}
+                onChange={(e) => setImageUrls(e.target.value)}
+                placeholder="商品图片网址（可选，每行一个）\nhttps://example.com/image1.jpg\nhttps://example.com/image2.jpg"
+                disabled={isGenerating}
+                rows={3}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '6px',
+                  fontSize: '0.9rem',
+                  outline: 'none',
+                  transition: 'all 0.2s',
+                  boxSizing: 'border-box',
+                  fontFamily: 'inherit',
+                  resize: 'vertical',
+                  minHeight: '80px'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6';
+                  e.target.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#e5e7eb';
+                  e.target.style.boxShadow = 'none';
+                }}
+              />
+            </div>
+            
+            <div style={{
+              display: 'flex',
+              gap: '1rem',
+              alignItems: 'center',
+              marginTop: '1rem',
+              justifyContent: 'center'
+            }}>
             <button
-              onClick={handleGenerateFromUrl}
-              disabled={isGenerating || !productUrl.trim()}
+              onClick={handleGenerateFromContent}
+              disabled={isGenerating || !productContent.trim()}
               style={{
-                padding: '0.875rem 1.5rem',
-                background: isGenerating || !productUrl.trim() ? '#9ca3af' : '#3b82f6',
+                padding: '1rem 2rem',
+                background: isGenerating || !productContent.trim() ? '#9ca3af' : '#3b82f6',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
                 fontSize: '1rem',
                 fontWeight: 600,
-                cursor: isGenerating || !productUrl.trim() ? 'not-allowed' : 'pointer',
+                cursor: isGenerating || !productContent.trim() ? 'not-allowed' : 'pointer',
                 transition: 'all 0.2s',
                 whiteSpace: 'nowrap',
                 display: 'flex',
@@ -771,9 +938,36 @@ function ClaudeApp() {
                 </>
               ) : (
                 <>
-                  🎯 生成导购页
+                  🎯 智能生成导购页
                 </>
               )}
+            </button>
+            
+            <button
+              onClick={() => {
+                // Open bookmarklet instructions
+                window.open('/bookmarklet.html', '_blank', 'width=900,height=700,scrollbars=yes,resizable=yes');
+              }}
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: 'transparent',
+                color: '#6b7280',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.borderColor = '#9ca3af';
+                e.currentTarget.style.color = '#374151';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.borderColor = '#d1d5db';
+                e.currentTarget.style.color = '#6b7280';
+              }}
+            >
+              📖 书签工具
             </button>
           </div>
           

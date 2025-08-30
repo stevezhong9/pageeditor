@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PageEditor 商品抓取书签工具</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            line-height: 1.6;
+            color: #333;
+        }
+        .hero {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+        }
+        .hero h1 {
+            margin: 0 0 1rem;
+            font-size: 2.5rem;
+        }
+        .hero p {
+            margin: 0;
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        .bookmarklet {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+        .bookmarklet h2 {
+            margin: 0 0 1rem;
+            color: #1f2937;
+        }
+        .bookmarklet-link {
+            display: inline-block;
+            background: #3b82f6;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            margin: 1rem 0;
+            transition: all 0.2s;
+        }
+        .bookmarklet-link:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+        .instructions {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+        .instructions h3 {
+            margin: 0 0 1rem;
+            color: #1f2937;
+        }
+        .instructions ol {
+            margin: 0;
+            padding-left: 1.5rem;
+        }
+        .instructions li {
+            margin: 0.5rem 0;
+        }
+        .demo {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+        .demo h3 {
+            margin: 0 0 1rem;
+            color: #92400e;
+        }
+        .demo p {
+            margin: 0.5rem 0;
+            color: #92400e;
+        }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <h1>🚀 PageEditor 商品抓取工具</h1>
+        <p>一键提取商品页面信息，智能生成导购页面</p>
+    </div>
+
+    <div class="bookmarklet">
+        <h2>📖 书签工具</h2>
+        <p>将下面的链接拖拽到浏览器书签栏，或右键"添加到收藏夹"：</p>
+        
+        <a href="javascript:(function(){
+            var title = document.title || '';
+            var url = window.location.href;
+            var content = '';
+            
+            // 尝试提取主要内容
+            var contentSelectors = [
+                '.product-detail', '.item-detail', '.product-info', '.goods-detail',
+                '[class*=product]', '[class*=item]', '[class*=goods]', '[id*=product]',
+                'main', '.main', '#main', '.content', '#content'
+            ];
+            
+            var extracted = false;
+            for (var i = 0; i < contentSelectors.length && !extracted; i++) {
+                var element = document.querySelector(contentSelectors[i]);
+                if (element) {
+                    content = element.innerText || element.textContent || '';
+                    if (content.length > 200) {
+                        extracted = true;
+                    }
+                }
+            }
+            
+            // 如果没有找到特定区域，提取body内容
+            if (!extracted) {
+                content = document.body.innerText || document.body.textContent || '';
+            }
+            
+            // 清理内容
+            content = content
+                .replace(/\\s+/g, ' ')
+                .replace(/登录|注册|购物车|客服|帮助|首页|导航|菜单/g, '')
+                .trim();
+                
+            // 提取图片链接
+            var images = [];
+            var imgElements = document.querySelectorAll('img[src*=product], img[src*=item], img[src*=goods], .product img, .item img, .goods img');
+            
+            if (imgElements.length === 0) {
+                imgElements = document.querySelectorAll('img');
+            }
+            
+            for (var j = 0; j < Math.min(imgElements.length, 5); j++) {
+                var img = imgElements[j];
+                var src = img.src || img.getAttribute('data-src') || img.getAttribute('data-original');
+                if (src && src.indexOf('http') === 0 && src.indexOf('data:') !== 0) {
+                    if (img.width > 100 || img.height > 100) { // 过滤小图标
+                        images.push(src);
+                    }
+                }
+            }
+            
+            // 生成数据
+            var extractedData = {
+                title: title,
+                url: url,
+                content: content.substring(0, 8000), // 限制长度
+                images: images,
+                timestamp: new Date().toISOString()
+            };
+            
+            // 保存到localStorage
+            localStorage.setItem('pageeditor_extracted_data', JSON.stringify(extractedData));
+            
+            // 打开PageEditor（请替换为实际的URL）
+            var pageeditorUrl = 'https://pageeditor.sharetox.com'; // 替换为你的域名
+            var popup = window.open(pageeditorUrl, 'pageeditor', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+            
+            if (!popup) {
+                // 如果弹窗被阻止，显示提示
+                alert('数据已提取！请手动打开 PageEditor 页面，数据将自动填入。\\n\\n或者允许弹窗后重试。');
+            } else {
+                // 等待页面加载后发送数据
+                setTimeout(function() {
+                    try {
+                        popup.postMessage({
+                            type: 'PAGEEDITOR_DATA',
+                            data: extractedData
+                        }, '*');
+                    } catch (e) {
+                        console.log('无法发送数据到PageEditor，数据已保存到localStorage');
+                    }
+                }, 2000);
+            }
+        })();" 
+        class="bookmarklet-link">
+            📖 PageEditor 提取器
+        </a>
+    </div>
+
+    <div class="instructions">
+        <h3>🔧 使用方法</h3>
+        <ol>
+            <li><strong>安装书签：</strong>将上面的"PageEditor 提取器"链接拖拽到浏览器书签栏</li>
+            <li><strong>访问商品页面：</strong>打开任意电商网站的商品详情页（淘宝、京东、亚马逊等）</li>
+            <li><strong>一键提取：</strong>点击书签栏中的"PageEditor 提取器"</li>
+            <li><strong>自动跳转：</strong>系统会自动提取商品信息并跳转到PageEditor</li>
+            <li><strong>智能生成：</strong>在PageEditor中点击"智能生成导购页"即可</li>
+        </ol>
+    </div>
+
+    <div class="demo">
+        <h3>⚠️ 注意事项</h3>
+        <p>• 首次使用可能需要允许弹窗</p>
+        <p>• 某些网站可能限制内容提取</p>
+        <p>• 提取的图片链接有效期取决于原网站</p>
+        <p>• 建议在商品详情页面使用，避免在列表页使用</p>
+    </div>
+
+    <div class="instructions">
+        <h3>🎯 支持的网站</h3>
+        <p>✅ 淘宝 &nbsp;&nbsp; ✅ 天猫 &nbsp;&nbsp; ✅ 京东 &nbsp;&nbsp; ✅ 亚马逊</p>
+        <p>✅ 拼多多 &nbsp;&nbsp; ✅ 苏宁 &nbsp;&nbsp; ✅ 国美 &nbsp;&nbsp; ✅ 其他电商网站</p>
+    </div>
+
+    <script>
+        // 检查是否有从书签传来的数据
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'PAGEEDITOR_DATA') {
+                console.log('接收到提取的数据：', event.data.data);
+                // 这里可以处理接收到的数据
+            }
+        });
+
+        // 检查localStorage中是否有数据
+        window.addEventListener('load', function() {
+            var storedData = localStorage.getItem('pageeditor_extracted_data');
+            if (storedData) {
+                try {
+                    var data = JSON.parse(storedData);
+                    console.log('发现本地存储的提取数据：', data);
+                    
+                    // 显示提示
+                    var notice = document.createElement('div');
+                    notice.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 1rem; border-radius: 8px; z-index: 9999; max-width: 300px;';
+                    notice.innerHTML = '✅ 发现提取的商品数据！<br><small>数据将自动填入表单</small>';
+                    document.body.appendChild(notice);
+                    
+                    setTimeout(function() {
+                        notice.remove();
+                    }, 3000);
+                    
+                } catch (e) {
+                    console.error('解析提取数据失败：', e);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
