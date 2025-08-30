@@ -4,6 +4,7 @@ import { ClaudeAPIService, MockAIService, PatchOperation } from './services/clau
 import { forceScrollbarVisibility, checkScrollProperties } from './utils/scrollTest';
 import { DownloadService } from './services/downloadService';
 import { PublishService } from './services/publishService';
+import { FilePublishService } from './services/filePublishService';
 
 interface ChatMessage {
   id: string;
@@ -351,7 +352,19 @@ function ClaudeApp() {
     setIsPublishing(true);
     
     try {
-      const result = await PublishService.publishPage(pageData, brandConfig, {
+      // 验证页面名称
+      const validation = FilePublishService.validatePageName(customPageName.trim());
+      if (!validation.valid) {
+        throw new Error(validation.message);
+      }
+
+      // 检查页面是否已存在
+      const exists = await FilePublishService.checkPageExists(customPageName.trim());
+      if (exists) {
+        throw new Error('页面名称已存在，请选择其他名称');
+      }
+
+      const result = await FilePublishService.publishPage(pageData, brandConfig, {
         pageName: customPageName.trim(),
         includeSources: true
       });
@@ -364,7 +377,7 @@ function ClaudeApp() {
         const successMsg: ChatMessage = {
           id: Date.now().toString(),
           role: 'assistant',
-          content: `🎉 页面发布成功！\n\n📍 访问地址: ${result.url}\n🔗 完整URL: ${PublishService.generatePreviewUrl(customPageName)}\n\n页面已保存到本地，您可以随时访问和管理。`,
+          content: `🎉 页面发布成功！\n\n📍 访问地址: ${result.url}\n🔗 完整URL: ${window.location.origin}${result.url}\n📁 生成文件: ${result.files?.length || 0} 个\n\n页面已成功部署，您可以立即访问！点击上方链接或直接访问 ${window.location.origin}${result.url}`,
           timestamp: Date.now()
         };
         setMessages(prev => [...prev, successMsg]);
@@ -399,7 +412,7 @@ function ClaudeApp() {
   };
 
   const validatePageName = (name: string) => {
-    return PublishService.validatePageName(name);
+    return FilePublishService.validatePageName(name);
   };
 
   // 初始化已发布页面列表和API设置
@@ -974,7 +987,7 @@ function ClaudeApp() {
                   </>
                 ) : (
                   <>
-                    📦 下载导购页
+                    📦 下载
                   </>
                 )}
               </button>
@@ -1010,7 +1023,7 @@ function ClaudeApp() {
                   }
                 }}
               >
-                🚀 发布页面
+                🚀 发布
               </button>
             </div>
           </div>
@@ -1185,7 +1198,7 @@ function ClaudeApp() {
               marginBottom: '1.5rem',
               textAlign: 'center'
             }}>
-              请输入自定义页面名称，页面将发布到 pages/[页面名称]
+              请输入自定义页面名称，页面将发布到网站根目录下的独立页面
             </p>
 
             <div style={{ marginBottom: '1.5rem' }}>
@@ -1249,7 +1262,16 @@ function ClaudeApp() {
                 marginTop: '0.5rem',
                 margin: '0.5rem 0 0 0'
               }}>
-                📍 发布地址预览: pages/{customPageName || '[页面名称]'}
+                📍 发布地址预览: {window.location.origin}/{customPageName || '[页面名称]'}
+              </p>
+              <p style={{
+                color: '#6b7280',
+                fontSize: '0.7rem',
+                marginTop: '0.25rem',
+                margin: '0.25rem 0 0 0',
+                fontStyle: 'italic'
+              }}>
+                💡 名称规则: 2-30个字符，以字母开头，只能包含字母、数字、连字符(-)和下划线(_)
               </p>
             </div>
 
