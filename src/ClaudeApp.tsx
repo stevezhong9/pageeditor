@@ -93,20 +93,33 @@ function ClaudeApp() {
 
   // Initialize Claude service when API key is provided
   const initializeClaudeService = (apiKey: string) => {
-    console.log('Initializing Claude service with API key:', {
+    console.log('🔧 Initializing Claude service with API key:', {
       hasKey: !!apiKey,
       keyLength: apiKey ? apiKey.length : 0,
       startsCorrectly: apiKey ? apiKey.startsWith('sk-ant-api03-') : false,
-      firstChars: apiKey ? apiKey.substring(0, 20) : 'none'
+      firstChars: apiKey ? apiKey.substring(0, 20) : 'none',
+      actualApiKey: apiKey // 临时调试 - 显示完整 API Key
     });
     
-    if (apiKey && apiKey.startsWith('sk-ant-api03-')) {
-      claudeService = new ClaudeAPIService(apiKey);
-      console.log('Claude service initialized successfully');
-      return true;
+    try {
+      if (apiKey && apiKey.startsWith('sk-ant-api03-')) {
+        claudeService = new ClaudeAPIService(apiKey);
+        console.log('✅ Claude service initialized successfully');
+        return true;
+      } else {
+        console.log('❌ Claude service initialization failed - invalid API key format');
+        console.log('API Key check details:', {
+          apiKeyExists: !!apiKey,
+          apiKeyType: typeof apiKey,
+          startsWith: apiKey ? apiKey.startsWith('sk-ant-api03-') : 'N/A',
+          fullKey: apiKey || 'null'
+        });
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Error during Claude service initialization:', error);
+      return false;
     }
-    console.log('Claude service initialization failed - invalid API key format');
-    return false;
   };
 
   const handleSendMessage = async () => {
@@ -130,8 +143,11 @@ function ClaudeApp() {
       let responseContent: string;
       
       if (useClaudeAPI && apiKey) {
-        // Initialize Claude service if not already done
-        if (!claudeService || !initializeClaudeService(apiKey)) {
+        // Always reinitialize Claude service to ensure fresh state
+        const initResult = initializeClaudeService(apiKey);
+        console.log('Claude service initialization result:', initResult);
+        
+        if (!initResult) {
           console.log('Failed to initialize Claude service. API Key details:', {
             apiKey: apiKey ? `${apiKey.substring(0, 20)}...` : 'null',
             length: apiKey ? apiKey.length : 0,
