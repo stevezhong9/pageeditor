@@ -62,7 +62,7 @@ export default async function handler(request, response) {
       console.log('🔗 Image URLs:', images);
       try {
         // Process images directly instead of making HTTP call
-        processedImages = await processProductImages(images.slice(0, 3), `product_${Date.now()}`);
+        processedImages = await processProductImages(images.slice(0, 5), `product_${Date.now()}`);
         console.log('✅ Images processed successfully:', processedImages.length);
         if (processedImages.length === 0 && images.length > 0) {
           console.warn('⚠️ No images processed despite having image URLs - check download failures');
@@ -87,6 +87,15 @@ export default async function handler(request, response) {
       alt: '商品图片'
     }));
 
+    // Create detailed image processing summary
+    const imageProcessingSummary = {
+      extracted: images?.length || 0,
+      attempted: Math.min(images?.length || 0, 5),
+      successful: processedImages.length,
+      failed: Math.min(images?.length || 0, 5) - processedImages.length
+    };
+
+    console.log('📊 Image processing summary:', imageProcessingSummary);
     console.log('✅ Browser content analysis successful');
 
     return response.status(200).json({
@@ -94,13 +103,16 @@ export default async function handler(request, response) {
       pageData: finalPageData,
       extractedInfo: {
         url: url,
-        textLength: cleanedContent.length,
+        textLength: finalContent.length,
         imageCount: processedImages.length,
         originalImages: images?.length || 0,
-        title: title || '未提供'
+        title: title || '未提供',
+        imageProcessing: imageProcessingSummary
       },
       processedImages,
-      message: '浏览器内容分析完成'
+      message: processedImages.length === Math.min(images?.length || 0, 5) && processedImages.length > 0
+        ? '浏览器内容分析完成'
+        : `浏览器内容分析完成 - 图片处理: ${processedImages.length}/${Math.min(images?.length || 0, 5)} 成功`
     });
 
   } catch (error) {
@@ -377,6 +389,9 @@ async function processProductImages(imageUrls, productId) {
     }
 
     console.log(`🎉 Image processing completed: ${processedImages.length} success, ${errors.length} errors`);
+    if (errors.length > 0) {
+      console.log('❌ Image processing errors:', errors);
+    }
     return processedImages;
 
   } catch (error) {

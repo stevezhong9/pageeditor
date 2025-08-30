@@ -39,9 +39,22 @@ function ProductImageGallery({ images, style }: ProductImageGalleryProps) {
 
   return (
     <div style={{ ...style, width: '100%' }}>
+      {/* Single Image Title */}
+      {images.length === 1 && (
+        <div style={{
+          textAlign: 'center',
+          fontSize: '0.875rem',
+          color: '#374151',
+          marginBottom: '0.75rem',
+          fontWeight: 600
+        }}>
+          商品图片
+        </div>
+      )}
+      
       {/* Main Image */}
       <div style={{
-        marginBottom: '1rem',
+        marginBottom: images.length > 1 ? '1rem' : '0',
         borderRadius: '12px',
         overflow: 'hidden',
         boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
@@ -68,53 +81,69 @@ function ProductImageGallery({ images, style }: ProductImageGalleryProps) {
         />
       </div>
 
-      {/* Thumbnail Gallery */}
+      {/* Thumbnail Gallery - Always show when multiple images */}
       {images.length > 1 && (
-        <div style={{
-          display: 'flex',
-          gap: '0.5rem',
-          justifyContent: 'center',
-          flexWrap: 'wrap',
-          maxWidth: '100%',
-          overflowX: 'auto',
-          padding: '0.5rem 0'
-        }}>
+        <div>
+          <div style={{
+            textAlign: 'center',
+            fontSize: '0.875rem',
+            color: '#374151',
+            marginBottom: '0.75rem',
+            fontWeight: 600
+          }}>
+            商品图片 ({images.length} 张)
+          </div>
+          <div style={{
+            display: 'flex',
+            gap: '0.75rem',
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            maxWidth: '100%',
+            overflowX: 'auto',
+            padding: '0.5rem',
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+            borderRadius: '16px',
+            border: '1px solid #e2e8f0'
+          }}>
           {images.map((image, index) => (
             <div
               key={index}
               style={{
                 cursor: 'pointer',
-                borderRadius: '8px',
+                borderRadius: '12px',
                 overflow: 'hidden',
-                border: currentImageIndex === index ? '3px solid #3b82f6' : '3px solid transparent',
-                transition: 'all 0.2s ease',
+                border: currentImageIndex === index ? '3px solid #3b82f6' : '2px solid #e5e7eb',
+                transition: 'all 0.3s ease',
                 flexShrink: 0,
-                opacity: currentImageIndex === index ? 1 : 0.7,
-                transform: currentImageIndex === index ? 'scale(1)' : 'scale(0.95)'
+                boxShadow: currentImageIndex === index 
+                  ? '0 8px 20px rgba(59, 130, 246, 0.3)' 
+                  : '0 4px 8px rgba(0, 0, 0, 0.1)',
+                transform: currentImageIndex === index ? 'scale(1.05)' : 'scale(1)'
               }}
               onClick={() => {
                 setCurrentImageIndex(index);
                 setImageAspectRatio(null); // Reset aspect ratio for new image
               }}
               onMouseEnter={(e) => {
-                if (currentImageIndex !== index) {
-                  e.currentTarget.style.opacity = '0.9';
-                  e.currentTarget.style.transform = 'scale(0.98)';
-                }
+                // Switch to this image on hover
+                setCurrentImageIndex(index);
+                setImageAspectRatio(null);
+                e.currentTarget.style.transform = 'scale(1.1)';
+                e.currentTarget.style.boxShadow = '0 12px 24px rgba(59, 130, 246, 0.4)';
               }}
               onMouseLeave={(e) => {
-                if (currentImageIndex !== index) {
-                  e.currentTarget.style.opacity = '0.7';
-                  e.currentTarget.style.transform = 'scale(0.95)';
-                }
+                e.currentTarget.style.transform = currentImageIndex === index ? 'scale(1.05)' : 'scale(1)';
+                e.currentTarget.style.boxShadow = currentImageIndex === index 
+                  ? '0 8px 20px rgba(59, 130, 246, 0.3)' 
+                  : '0 4px 8px rgba(0, 0, 0, 0.1)';
               }}
             >
               <img
                 src={image.url}
                 alt={`${image.alt} - 缩略图 ${index + 1}`}
                 style={{
-                  width: '80px',
-                  height: '80px',
+                  width: '100px',
+                  height: '100px',
                   objectFit: 'contain',
                   display: 'block',
                   backgroundColor: '#f8fafc'
@@ -122,6 +151,7 @@ function ProductImageGallery({ images, style }: ProductImageGalleryProps) {
               />
             </div>
           ))}
+          </div>
         </div>
       )}
 
@@ -289,10 +319,15 @@ function ClaudeApp() {
         setPageData(result.pageData);
         
         // 显示成功消息
+        const imageProcessing = result.extractedInfo?.imageProcessing;
+        const imageStatusText = imageProcessing 
+          ? `• 图片处理: ${imageProcessing.successful}/${imageProcessing.attempted} 张成功${imageProcessing.failed > 0 ? ` (${imageProcessing.failed}张失败)` : ''}`
+          : `• 图片: ${result.extractedInfo?.imageCount || 0} 张`;
+        
         const successMsg: ChatMessage = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: `🎉 书签数据分析完成！\n\n✅ 已生成导购页面:\n• 标题: ${result.pageData.hero?.headline || '未提取'}\n• 描述: ${result.pageData.hero?.subhead || '未提取'}\n• 特性: ${result.pageData.usps?.length || 0} 个卖点\n• 文本长度: ${result.extractedInfo?.textLength || 0} 字符\n• 图片: ${result.extractedInfo?.imageCount || 0} 张\n\n您可以继续通过AI对话进行个性化调整！`,
+          content: `🎉 书签数据分析完成！\n\n✅ 已生成导购页面:\n• 标题: ${result.pageData.hero?.headline || '未提取'}\n• 描述: ${result.pageData.hero?.subhead || '未提取'}\n• 特性: ${result.pageData.usps?.length || 0} 个卖点\n• 文本长度: ${result.extractedInfo?.textLength || 0} 字符\n${imageStatusText}\n\n您可以继续通过AI对话进行个性化调整！`,
           timestamp: Date.now()
         };
         setMessages(prev => [...prev, successMsg]);

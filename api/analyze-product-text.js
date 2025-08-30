@@ -51,7 +51,7 @@ export default async function handler(request, response) {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            imageUrls: imageUrls.slice(0, 3), // Limit to first 3 images
+            imageUrls: imageUrls.slice(0, 5), // Limit to first 5 images
             productId: `product_${Date.now()}`
           })
         });
