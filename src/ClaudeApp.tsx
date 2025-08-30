@@ -1843,7 +1843,7 @@ function ClaudeApp() {
         onClose={() => setShowPublishDialog(false)}
         validatePageName={validatePageName}
         publishedPages={publishedPages}
-      />      </div>
+      />
     </div>
   );
 }
