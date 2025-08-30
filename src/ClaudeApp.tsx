@@ -302,6 +302,11 @@ function ClaudeApp() {
         setPageData(result.pageData);
         
         // 保存商品URL
+        console.log('🔍 保存商品URL:', {
+          originalUrl: data.url,
+          savedUrl: data.url || '',
+          hasUrl: !!(data.url || '')
+        });
         setCurrentProductUrl(data.url || '');
         
         // 显示成功消息
