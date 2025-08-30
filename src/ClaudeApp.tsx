@@ -1646,7 +1646,7 @@ function ClaudeApp() {
                       border: '2px solid transparent',
                       borderTop: '2px solid white',
                       borderRadius: '50%',
-                      animation: 'spin 1s linear infinite'
+                      animation: `spin 1s linear infinite`
                     }} />
                     打包中...
                   </>
@@ -2039,7 +2039,7 @@ function ClaudeApp() {
                       border: '2px solid transparent',
                       borderTop: '2px solid white',
                       borderRadius: '50%',
-                      animation: 'spin 1s linear infinite'
+                      animation: `spin 1s linear infinite`
                     }} />
                     发布中...
                   </>
