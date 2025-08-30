@@ -1,31 +1,31 @@
-module.exports = async (req, res) => {
+export default async function handler(request, response) {
   // Enable CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  response.setHeader('Access-Control-Allow-Origin', '*');
+  response.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  response.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+  if (request.method === 'OPTIONS') {
+    return response.status(200).end();
   }
 
   // Only allow POST requests
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  if (request.method !== 'POST') {
+    return response.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { messages, model = 'claude-3-sonnet-20240229', max_tokens = 1000 } = req.body;
+    const { messages, model = 'claude-3-sonnet-20240229', max_tokens = 1000 } = request.body;
     const apiKey = process.env.VITE_CLAUDE_API_KEY;
     
     if (!apiKey) {
-      return res.status(500).json({ 
+      return response.status(500).json({ 
         error: 'Server configuration error: Missing API key'
       });
     }
     
     // Make request to Claude API  
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -39,19 +39,19 @@ module.exports = async (req, res) => {
       })
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      return res.status(response.status).json({ 
-        error: `Claude API error: ${response.status} ${errorText}`
+    if (!claudeResponse.ok) {
+      const errorText = await claudeResponse.text();
+      return response.status(claudeResponse.status).json({ 
+        error: `Claude API error: ${claudeResponse.status} ${errorText}`
       });
     }
 
-    const data = await response.json();
-    return res.status(200).json(data);
+    const data = await claudeResponse.json();
+    return response.status(200).json(data);
 
   } catch (error) {
-    return res.status(500).json({ 
+    return response.status(500).json({ 
       error: 'Internal server error: ' + error.message
     });
   }
-};
+}
