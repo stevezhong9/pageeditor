@@ -83,7 +83,112 @@ function ClaudeApp() {
     forceScrollbarVisibility();
   }, []);
 
-  // Cleanup: removed bookmarklet handling since we now use direct browser content extraction
+  // 处理书签工具数据 - 重新启用以支持更好的内容提取
+  useEffect(() => {
+    // 监听来自书签工具的postMessage
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'PAGEEDITOR_DATA') {
+        const data = event.data.data;
+        console.log('📖 接收到书签工具数据:', data);
+        
+        // 直接调用分析API处理书签数据
+        handleBookmarkletData(data);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    
+    // 检查localStorage中的书签数据
+    const checkStoredData = () => {
+      try {
+        const storedData = localStorage.getItem('pageeditor_extracted_data');
+        if (storedData) {
+          const data = JSON.parse(storedData);
+          console.log('📖 发现本地存储的书签数据:', data);
+          
+          // 处理存储的数据
+          handleBookmarkletData(data);
+          
+          // 清除已使用的数据
+          localStorage.removeItem('pageeditor_extracted_data');
+        }
+      } catch (e) {
+        console.error('解析书签数据失败:', e);
+      }
+    };
+
+    // 页面加载时检查数据
+    checkStoredData();
+    
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []);
+
+  // 处理书签工具提取的数据
+  const handleBookmarkletData = async (data: any) => {
+    setIsGenerating(true);
+    
+    try {
+      // 显示处理消息
+      const processingMsg: ChatMessage = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: `📖 已接收书签工具数据！\n\n✅ 页面: ${data.title || '未知'}\n📄 内容: ${data.content ? Math.min(data.content.length, 1000) + '...' : '无'}\n🖼️ 图片: ${data.images ? data.images.length : 0} 张\n🔗 来源: ${data.url || '未知'}\n\n🤖 正在进行AI智能分析...`,
+        timestamp: Date.now()
+      };
+      setMessages(prev => [...prev, processingMsg]);
+
+      // 调用浏览器内容分析API
+      const response = await fetch('/api/analyze-browser-content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: data.url,
+          title: data.title,
+          content: data.content,
+          images: data.images || []
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`内容分析失败: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.pageData) {
+        // 更新页面数据
+        setPageData(result.pageData);
+        
+        // 显示成功消息
+        const successMsg: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: `🎉 书签数据分析完成！\n\n✅ 已生成导购页面:\n• 标题: ${result.pageData.hero?.headline || '未提取'}\n• 描述: ${result.pageData.hero?.subhead || '未提取'}\n• 特性: ${result.pageData.usps?.length || 0} 个卖点\n• 文本长度: ${result.extractedInfo?.textLength || 0} 字符\n• 图片: ${result.extractedInfo?.imageCount || 0} 张\n\n您可以继续通过AI对话进行个性化调整！`,
+          timestamp: Date.now()
+        };
+        setMessages(prev => [...prev, successMsg]);
+      } else {
+        throw new Error(result.message || '分析书签数据失败');
+      }
+      
+    } catch (error) {
+      console.error('书签数据处理失败:', error);
+      
+      const errorMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `❌ 书签数据处理失败: ${error instanceof Error ? error.message : '未知错误'}\n\n🔧 您可以尝试:\n• 重新在商品页面点击书签\n• 或者使用下方的URL输入方式\n• 或者直接通过AI对话创建页面`,
+        timestamp: Date.now()
+      };
+      setMessages(prev => [...prev, errorMsg]);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   // Test function to add multiple messages (for testing scroll)
   const addTestMessages = () => {
@@ -919,7 +1024,7 @@ function ClaudeApp() {
             fontSize: '0.875rem',
             marginBottom: '1.5rem'
           }}>
-            输入商品网址，系统将在新窗口打开页面，利用您的登录状态提取商品信息，智能生成专业导购页面
+输入商品网址自动分析，或者使用书签工具一键提取。书签方式能够完美绕过登录限制，获取完整商品信息
           </p>
           
           <div style={{
@@ -931,9 +1036,9 @@ function ClaudeApp() {
             fontSize: '0.875rem',
             color: '#0c4a6e'
           }}>
-            🤖 <strong>智能分析流程：</strong> 输入网址 → 新窗口打开 → 等待加载 → 手动关闭窗口 → AI分析 → 生成导购页
+            🤖 <strong>智能分析流程：</strong> 输入网址 → 新窗口打开 → 手动关闭窗口 → AI分析 ｜ 或者 → 使用书签工具一键提取 → 直接分析
             <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', opacity: '0.8' }}>
-              ✨ 支持淘宝、京东、天猫、亚马逊等主流电商平台，利用您的登录状态绕过访问限制，等待页面加载后手动关闭窗口即可
+              ✨ 支持淘宝、京东、天猫、亚马逊等主流电商平台。推荐使用书签工具，能完美绕过登录限制并提取完整内容
             </div>
           </div>
           
@@ -1043,6 +1148,88 @@ function ClaudeApp() {
               <span>✅ 亚马逊</span>
               <span>✅ 拼多多</span>
               <span>✨ AI智能分析</span>
+            </div>
+            
+            {/* 书签工具区域 */}
+            <div style={{
+              marginTop: '2rem',
+              padding: '1.5rem',
+              background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+              border: '1px solid #0ea5e9',
+              borderRadius: '12px',
+              textAlign: 'center'
+            }}>
+              <h3 style={{
+                fontSize: '1.1rem',
+                fontWeight: 600,
+                color: '#0c4a6e',
+                margin: '0 0 1rem 0'
+              }}>
+                📖 更好的选择：使用书签工具
+              </h3>
+              <p style={{
+                fontSize: '0.875rem',
+                color: '#0369a1',
+                margin: '0 0 1rem 0',
+                lineHeight: '1.5'
+              }}>
+                书签工具能够在商品页面直接提取内容，绕过所有跨域限制，获取最完整的商品信息
+              </p>
+              
+              <div style={{
+                display: 'inline-block',
+                background: '#f8fafc',
+                border: '2px dashed #3b82f6',
+                borderRadius: '8px',
+                padding: '1rem',
+                margin: '0.5rem 0'
+              }}>
+                <p style={{
+                  fontSize: '0.8rem',
+                  color: '#374151',
+                  margin: '0 0 0.5rem 0'
+                }}>
+                  将下面的链接拖拽到浏览器书签栏：
+                </p>
+                <a href="javascript:(function(){var title=document.title||'';var url=window.location.href;var content='';var contentSelectors=['.product-detail','.item-detail','.product-info','.goods-detail','[class*=product]','[class*=item]','[class*=goods]','[id*=product]','main','.main','#main','.content','#content'];var extracted=false;for(var i=0;i<contentSelectors.length&&!extracted;i++){var element=document.querySelector(contentSelectors[i]);if(element){content=element.innerText||element.textContent||'';if(content.length>200){extracted=true;}}}if(!extracted){content=document.body.innerText||document.body.textContent||'';}content=content.replace(/\\s+/g,' ').replace(/登录|注册|购物车|客服|帮助|首页|导航|菜单/g,'').trim();var images=[];var imgElements=document.querySelectorAll('img[src*=product],img[src*=item],img[src*=goods],.product img,.item img,.goods img');if(imgElements.length===0){imgElements=document.querySelectorAll('img');}for(var j=0;j<Math.min(imgElements.length,5);j++){var img=imgElements[j];var src=img.src||img.getAttribute('data-src')||img.getAttribute('data-original');if(src&&src.indexOf('http')===0&&src.indexOf('data:')!==0){if(img.width>50||img.height>50){images.push(src);}}}var extractedData={title:title,url:url,content:content.substring(0,8000),images:images,timestamp:new Date().toISOString()};localStorage.setItem('pageeditor_extracted_data',JSON.stringify(extractedData));var pageeditorUrl=window.location.origin;var popup=window.open(pageeditorUrl,'pageeditor','width=1200,height=800,scrollbars=yes,resizable=yes');if(!popup){alert('数据已提取！请手动打开 PageEditor 页面，数据将自动填入。');}else{setTimeout(function(){try{popup.postMessage({type:'PAGEEDITOR_DATA',data:extractedData},'*');}catch(e){console.log('数据已保存到localStorage');}},2000);}})();"
+                style={{
+                  display: 'inline-block',
+                  background: '#3b82f6',
+                  color: 'white',
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: '8px',
+                  textDecoration: 'none',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  cursor: 'move',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.background = '#2563eb';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.background = '#3b82f6';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+                >
+                  📖 PageEditor 提取器
+                </a>
+              </div>
+              
+              <div style={{
+                fontSize: '0.75rem',
+                color: '#6b7280',
+                marginTop: '1rem',
+                lineHeight: '1.4'
+              }}>
+                <p style={{ margin: '0 0 0.5rem 0' }}>
+                  🎯 使用方法：在商品页面点击书签 → 自动提取并跳转 → 智能生成导购页
+                </p>
+                <p style={{ margin: '0' }}>
+                  ✨ 优势：无跨域限制、利用登录状态、提取完整内容、一键操作
+                </p>
+              </div>
             </div>
         </div>
       </div>
