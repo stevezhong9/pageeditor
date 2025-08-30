@@ -59,12 +59,17 @@ export default async function handler(request, response) {
     let processedImages = [];
     if (images && images.length > 0) {
       console.log('🖼️ Processing browser-extracted images:', images.length);
+      console.log('🔗 Image URLs:', images);
       try {
         // Process images directly instead of making HTTP call
         processedImages = await processProductImages(images.slice(0, 3), `product_${Date.now()}`);
         console.log('✅ Images processed successfully:', processedImages.length);
+        if (processedImages.length === 0 && images.length > 0) {
+          console.warn('⚠️ No images processed despite having image URLs - check download failures');
+        }
       } catch (imageError) {
         console.error('⚠️ Image processing failed:', imageError);
+        console.error('Stack trace:', imageError.stack);
         // Continue without images
       }
     }
@@ -348,6 +353,7 @@ async function processProductImages(imageUrls, productId) {
         const filename = `${productId}/image_${i + 1}.${getImageExtension(cleanedUrl)}`;
         const blobPath = `product-images/${filename}`;
         
+        console.log(`💾 Storing to Blob: ${blobPath}`);
         const blob = await put(blobPath, imageData.buffer, {
           access: 'public',
           contentType: imageData.contentType,
@@ -362,7 +368,7 @@ async function processProductImages(imageUrls, productId) {
           contentType: imageData.contentType
         });
 
-        console.log(`✅ Image ${i + 1} stored:`, blob.url);
+        console.log(`✅ Image ${i + 1} stored successfully: ${blob.url}`);
 
       } catch (error) {
         console.error(`❌ Error processing image ${i + 1}:`, error);
@@ -419,14 +425,29 @@ async function downloadImage(url) {
   try {
     console.log('🌐 Downloading image:', url);
     
-    const response = await fetch(url, {
+    // Special handling for Taobao/Tmall images
+    let finalUrl = url;
+    if (url.includes('taobao.com') || url.includes('tmall.com') || url.includes('alicdn.com')) {
+      // For Alibaba CDN images, try to get a more direct URL
+      if (url.includes('_') && !url.includes('.jpg') && !url.includes('.png')) {
+        finalUrl = url + '.jpg';
+        console.log('🔄 Modified Taobao URL:', finalUrl);
+      }
+    }
+    
+    const response = await fetch(finalUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Accept': 'image/*,*/*;q=0.8',
         'Accept-Language': 'zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3',
-        'Cache-Control': 'no-cache'
-      }
+        'Cache-Control': 'no-cache',
+        'Referer': url.includes('taobao.com') ? 'https://www.taobao.com/' : 
+                   url.includes('tmall.com') ? 'https://www.tmall.com/' : ''
+      },
+      timeout: 30000 // Increase timeout for slower CDNs
     });
+
+    console.log(`📊 Response status: ${response.status}, Content-Type: ${response.headers.get('content-type')}`);
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -436,12 +457,19 @@ async function downloadImage(url) {
     
     // Validate content type
     if (!contentType || !contentType.startsWith('image/')) {
-      console.warn(`Not an image content type: ${contentType} for ${url}`);
-      // Still try to process it in case the server is misconfigured
+      console.warn(`⚠️ Not an image content type: ${contentType} for ${finalUrl}`);
+      // Try original URL if modified URL fails
+      if (finalUrl !== url) {
+        console.log('🔄 Retrying with original URL:', url);
+        return downloadImage(url);
+      }
+      throw new Error(`Invalid content type: ${contentType}`);
     }
 
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+
+    console.log(`📏 Image size: ${buffer.length} bytes`);
 
     // Validate file size (max 10MB)
     if (buffer.length > 10 * 1024 * 1024) {
@@ -450,9 +478,10 @@ async function downloadImage(url) {
 
     // Validate minimum file size (at least 500 bytes)
     if (buffer.length < 500) {
-      throw new Error('Image too small');
+      throw new Error('Image too small (min 500 bytes)');
     }
 
+    console.log('✅ Image downloaded successfully');
     return {
       buffer: buffer,
       contentType: contentType || 'image/jpeg',
@@ -460,7 +489,8 @@ async function downloadImage(url) {
     };
 
   } catch (error) {
-    console.error('Image download error:', error);
+    console.error('❌ Image download error for:', url);
+    console.error('Error details:', error.message);
     return null;
   }
 }
