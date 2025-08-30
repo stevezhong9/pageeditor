@@ -46,6 +46,10 @@ function ClaudeApp() {
   const [customPageName, setCustomPageName] = useState('');
   const [publishedPages, setPublishedPages] = useState<string[]>([]);
   
+  // Product URL form state
+  const [productUrl, setProductUrl] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  
   // Brand configuration
   const brandConfig = {
     name: "Premium Skincare",
@@ -411,6 +415,77 @@ function ClaudeApp() {
     return FilePublishService.validatePageName(name);
   };
 
+  // 处理商品网址生成导购页
+  const handleGenerateFromUrl = async () => {
+    if (!productUrl.trim()) return;
+    
+    setIsGenerating(true);
+    
+    try {
+      // 验证URL格式
+      const url = new URL(productUrl.trim());
+      
+      // 添加处理中消息到聊天
+      const processingMsg: ChatMessage = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: `🔍 正在分析商品页面: ${url.href}\n\n正在抓取页面内容并提取商品信息...`,
+        timestamp: Date.now()
+      };
+      setMessages(prev => [...prev, processingMsg]);
+
+      // 调用网页抓取API
+      const response = await fetch('/api/scrape-product', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: productUrl.trim()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`抓取失败: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.pageData) {
+        // 更新页面数据
+        setPageData(result.pageData);
+        
+        // 添加成功消息
+        const successMsg: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: `🎉 导购页生成成功！\n\n✅ 已提取商品信息:\n• 标题: ${result.pageData.hero?.headline || '未提取'}\n• 描述: ${result.pageData.hero?.subhead || '未提取'}\n• 特性: ${result.pageData.usps?.length || 0} 个卖点\n\n您可以继续通过AI对话进行个性化调整！`,
+          timestamp: Date.now()
+        };
+        setMessages(prev => [...prev, successMsg]);
+        
+        // 清空URL输入
+        setProductUrl('');
+      } else {
+        throw new Error(result.message || '提取商品信息失败');
+      }
+      
+    } catch (error) {
+      console.error('Generate from URL failed:', error);
+      
+      // 添加错误消息
+      const errorMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `❌ 生成失败: ${error instanceof Error ? error.message : '未知错误'}\n\n请检查:\n• URL格式是否正确\n• 网站是否可以访问\n• 页面是否包含商品信息\n\n您也可以继续使用AI对话功能手动编辑页面。`,
+        timestamp: Date.now()
+      };
+      setMessages(prev => [...prev, errorMsg]);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   // 初始化已发布页面列表和API设置
   useEffect(() => {
     setPublishedPages(PublishService.getPublishedPages());
@@ -583,6 +658,139 @@ function ClaudeApp() {
           </div>
         )}
       </header>
+
+      {/* 商品网址生成表单 */}
+      <div style={{
+        background: 'white',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        padding: '1.5rem',
+        marginBottom: '1rem'
+      }}>
+        <div style={{
+          maxWidth: '800px',
+          margin: '0 auto',
+          textAlign: 'center'
+        }}>
+          <h2 style={{
+            fontSize: '1.25rem',
+            fontWeight: 600,
+            color: '#1f2937',
+            marginBottom: '0.5rem'
+          }}>
+            🚀 智能导购页生成器
+          </h2>
+          <p style={{
+            color: '#6b7280',
+            fontSize: '0.875rem',
+            marginBottom: '1.5rem'
+          }}>
+            输入商品页面网址，AI将自动抓取并生成专业的导购页面
+          </p>
+          
+          <div style={{
+            display: 'flex',
+            gap: '1rem',
+            alignItems: 'stretch',
+            maxWidth: '600px',
+            margin: '0 auto'
+          }}>
+            <input
+              type="url"
+              value={productUrl}
+              onChange={(e) => setProductUrl(e.target.value)}
+              placeholder="https://www.example.com/product/123"
+              disabled={isGenerating}
+              style={{
+                flex: 1,
+                padding: '0.875rem 1rem',
+                border: '2px solid #e5e7eb',
+                borderRadius: '8px',
+                fontSize: '1rem',
+                outline: 'none',
+                transition: 'all 0.2s',
+                boxSizing: 'border-box'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#3b82f6';
+                e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e5e7eb';
+                e.target.style.boxShadow = 'none';
+              }}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && !isGenerating && productUrl.trim()) {
+                  handleGenerateFromUrl();
+                }
+              }}
+            />
+            
+            <button
+              onClick={handleGenerateFromUrl}
+              disabled={isGenerating || !productUrl.trim()}
+              style={{
+                padding: '0.875rem 1.5rem',
+                background: isGenerating || !productUrl.trim() ? '#9ca3af' : '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '1rem',
+                fontWeight: 600,
+                cursor: isGenerating || !productUrl.trim() ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
+              onMouseOver={(e) => {
+                if (!isGenerating && productUrl.trim()) {
+                  e.currentTarget.style.background = '#2563eb';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }
+              }}
+              onMouseOut={(e) => {
+                if (!isGenerating && productUrl.trim()) {
+                  e.currentTarget.style.background = '#3b82f6';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }
+              }}
+            >
+              {isGenerating ? (
+                <>
+                  <div style={{
+                    width: '16px',
+                    height: '16px',
+                    border: '2px solid #ffffff40',
+                    borderTop: '2px solid #ffffff',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }}></div>
+                  生成中...
+                </>
+              ) : (
+                <>
+                  🎯 生成导购页
+                </>
+              )}
+            </button>
+          </div>
+          
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '1rem',
+            marginTop: '1rem',
+            fontSize: '0.75rem',
+            color: '#6b7280'
+          }}>
+            <span>✅ 支持淘宝</span>
+            <span>✅ 支持京东</span>
+            <span>✅ 支持天猫</span>
+            <span>✅ 支持其他电商</span>
+          </div>
+        </div>
+      </div>
 
       <div style={{ 
         maxWidth: '1400px', 
