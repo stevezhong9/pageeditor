@@ -494,13 +494,14 @@ export class BlobPublishService {
         ${jsContent}
         
         // 页面特定功能
-        function handleCTAClick() {
-            ${productUrl ? 
-                `window.open('${productUrl}', '_blank');
-                console.log('Redirecting to product page:', '${productUrl}');` :
-                `alert('感谢您的关注！这是由 PageEditor 生成的导购页面。');
-                console.log('CTA clicked on page:', '${pageName}');`
-            }
+        function handleCTAClick() {${
+            productUrl ? 
+            `
+            window.open('${productUrl}', '_blank');
+            console.log('Redirecting to product page:', '${productUrl}');` : `
+            alert('感谢您的关注！这是由 PageEditor 生成的导购页面。');
+            console.log('CTA clicked on page:', '${pageName}');`
+        }
         }
         
         // 图片画廊功能
