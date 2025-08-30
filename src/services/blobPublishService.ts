@@ -194,6 +194,126 @@ export class BlobPublishService {
   }
 
   /**
+   * 生成图片画廊HTML
+   */
+  private static generateImageGallery(layout: PageLayout): string {
+    const images = (layout as any).images || [];
+    
+    if (!images || images.length === 0) {
+      return layout.hero?.image ? `
+        <div style="
+          max-width: 500px;
+          margin: 0 auto;
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+          background-color: #f8fafc;
+        ">
+          <img src="${layout.hero.image}" alt="商品图片" style="
+            width: 100%;
+            height: auto;
+            max-height: 500px;
+            min-height: 200px;
+            object-fit: contain;
+            display: block;
+          ">
+        </div>
+      ` : '';
+    }
+
+    if (images.length === 1) {
+      return `
+        <div style="
+          max-width: 500px;
+          margin: 0 auto;
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+          background-color: #f8fafc;
+        ">
+          <img src="${images[0].url}" alt="${images[0].alt || '商品图片'}" style="
+            width: 100%;
+            height: auto;
+            max-height: 500px;
+            min-height: 200px;
+            object-fit: contain;
+            display: block;
+          ">
+        </div>
+      `;
+    }
+
+    // Multiple images gallery
+    return `
+      <div class="product-gallery" style="width: 100%;">
+        <!-- Main Image -->
+        <div id="mainImageContainer" style="
+          max-width: 500px;
+          margin: 0 auto 1rem auto;
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+          background-color: #f8fafc;
+        ">
+          <img id="mainImage" src="${images[0].url}" alt="${images[0].alt || '商品图片'}" style="
+            width: 100%;
+            height: auto;
+            max-height: 500px;
+            min-height: 200px;
+            object-fit: contain;
+            display: block;
+            transition: opacity 0.3s ease;
+          ">
+        </div>
+
+        <!-- Thumbnails -->
+        <div style="
+          display: flex;
+          gap: 0.75rem;
+          justify-content: center;
+          flex-wrap: wrap;
+          max-width: 100%;
+          padding: 0.5rem;
+          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+          border-radius: 16px;
+          border: 1px solid #e2e8f0;
+        ">
+          ${images.map((image: any, index: number) => `
+            <div class="thumbnail" data-index="${index}" style="
+              cursor: pointer;
+              border-radius: 12px;
+              overflow: hidden;
+              border: ${index === 0 ? '3px solid #3b82f6' : '2px solid #e5e7eb'};
+              transition: all 0.3s ease;
+              flex-shrink: 0;
+              box-shadow: ${index === 0 ? '0 8px 20px rgba(59, 130, 246, 0.3)' : '0 4px 8px rgba(0, 0, 0, 0.1)'};
+              transform: ${index === 0 ? 'scale(1.05)' : 'scale(1)'};
+            " onmouseover="switchMainImage('${image.url}', '${image.alt || '商品图片'}', ${index})" onclick="switchMainImage('${image.url}', '${image.alt || '商品图片'}', ${index})">
+              <img src="${image.url}" alt="${image.alt || '商品图片'} - 缩略图 ${index + 1}" style="
+                width: 100px;
+                height: 100px;
+                object-fit: contain;
+                display: block;
+                background-color: #f8fafc;
+              ">
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- Image Counter -->
+        <div id="imageCounter" style="
+          text-align: center;
+          margin-top: 0.5rem;
+          font-size: 0.875rem;
+          color: #6b7280;
+        ">
+          1 / ${images.length}
+        </div>
+      </div>
+    `;
+  }
+
+  /**
    * 生成独立的HTML文件（包含内联CSS和JS）
    */
   private static generateStandaloneHTML(
@@ -281,27 +401,83 @@ export class BlobPublishService {
     </div>
     
     <main class="landing-page">
-        <section class="hero">
-            <div class="hero-content">
-                <h1 class="hero-title">${layout.hero?.headline || '欢迎使用我们的产品'}</h1>
-                <p class="hero-subtitle">${layout.hero?.subhead || '为您提供最优质的服务体验'}</p>
-                <button class="hero-cta" onclick="handleCTAClick()" style="background: ${layout.hero?.ctaColor || brandConfig.colors.primary};">
-                    ${layout.hero?.cta || '立即体验'}
-                </button>
-            </div>
-            ${layout.hero?.image ? `<img src="${layout.hero.image}" alt="产品展示" class="hero-image">` : ''}
-        </section>
+        <!-- Hero Section -->
+        <div class="hero-section" style="
+            background: linear-gradient(135deg, ${brandConfig.colors.primary}15, ${brandConfig.colors.accent}15);
+            text-align: center;
+            padding: 3rem 2rem;
+            border-radius: 24px;
+            margin: 2rem 0;
+        ">
+            <h1 style="
+                font-size: 2.5rem;
+                font-weight: 800;
+                color: #1f2937;
+                margin: 0 0 1rem 0;
+                line-height: 1.2;
+            ">${layout.hero?.headline || '欢迎使用我们的产品'}</h1>
+            
+            <p style="
+                font-size: 1.125rem;
+                color: #6b7280;
+                margin: 0 0 2rem 0;
+                line-height: 1.6;
+                max-width: 600px;
+                margin-left: auto;
+                margin-right: auto;
+            ">${layout.hero?.subhead || '为您提供最优质的服务体验'}</p>
+            
+            <button onclick="handleCTAClick()" style="
+                background: ${layout.hero?.ctaColor || brandConfig.colors.primary};
+                color: white;
+                border: none;
+                padding: 1rem 2rem;
+                font-size: 1.125rem;
+                font-weight: 600;
+                border-radius: 50px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                margin-bottom: 2rem;
+            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 12px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(0,0,0,0.1)'">
+                ${layout.hero?.cta || '立即体验'}
+            </button>
 
-        <section class="features">
-            <div class="features-grid">
+            <!-- Product Image Gallery -->
+            ${this.generateImageGallery(layout)}
+        </div>
+
+        <!-- USPs Section -->
+        <div class="usps-section" style="margin: 3rem 0;">
+            <div style="
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 1.5rem;
+                max-width: 800px;
+                margin: 0 auto;
+            ">
                 ${layout.usps?.map(usp => `
-                    <div class="feature-card">
-                        <div class="feature-icon">${usp.icon || '✨'}</div>
-                        <div class="feature-text">${usp.text || '优质特性'}</div>
+                    <div style="
+                        background: white;
+                        padding: 1.5rem;
+                        border-radius: 16px;
+                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+                        text-align: center;
+                        transition: all 0.3s ease;
+                    " onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 16px rgba(0,0,0,0.12)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(0,0,0,0.07)'">
+                        <div style="
+                            font-size: 2rem;
+                            margin-bottom: 0.5rem;
+                        ">${usp.icon || '✨'}</div>
+                        <div style="
+                            font-size: 1rem;
+                            font-weight: 500;
+                            color: #374151;
+                            line-height: 1.5;
+                        ">${usp.text || '优质特性'}</div>
                     </div>
                 `).join('') || ''}
             </div>
-        </section>
+        </div>
     </main>
 
     <footer style="text-align: center; padding: 2rem; color: #666; border-top: 1px solid #eee; margin-top: 3rem;">
@@ -319,6 +495,40 @@ export class BlobPublishService {
         function handleCTAClick() {
             alert('感谢您的关注！这是由 PageEditor 生成的导购页面。');
             console.log('CTA clicked on page:', '${pageName}');
+        }
+        
+        // 图片画廊功能
+        let currentImageIndex = 0;
+        
+        function switchMainImage(imageUrl, imageAlt, index) {
+            const mainImage = document.getElementById('mainImage');
+            const imageCounter = document.getElementById('imageCounter');
+            const thumbnails = document.querySelectorAll('.thumbnail');
+            
+            if (mainImage) {
+                mainImage.src = imageUrl;
+                mainImage.alt = imageAlt;
+                currentImageIndex = index;
+                
+                // Update counter
+                if (imageCounter) {
+                    const totalImages = thumbnails.length;
+                    imageCounter.textContent = (index + 1) + ' / ' + totalImages;
+                }
+                
+                // Update thumbnail styles
+                thumbnails.forEach((thumb, i) => {
+                    if (i === index) {
+                        thumb.style.border = '3px solid #3b82f6';
+                        thumb.style.boxShadow = '0 8px 20px rgba(59, 130, 246, 0.3)';
+                        thumb.style.transform = 'scale(1.05)';
+                    } else {
+                        thumb.style.border = '2px solid #e5e7eb';
+                        thumb.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)';
+                        thumb.style.transform = 'scale(1)';
+                    }
+                });
+            }
         }
         
         // 页面统计

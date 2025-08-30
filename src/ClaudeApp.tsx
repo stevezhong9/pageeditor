@@ -39,18 +39,6 @@ function ProductImageGallery({ images, style }: ProductImageGalleryProps) {
 
   return (
     <div style={{ ...style, width: '100%' }}>
-      {/* Single Image Title */}
-      {images.length === 1 && (
-        <div style={{
-          textAlign: 'center',
-          fontSize: '0.875rem',
-          color: '#374151',
-          marginBottom: '0.75rem',
-          fontWeight: 600
-        }}>
-          商品图片
-        </div>
-      )}
       
       {/* Main Image */}
       <div style={{
@@ -84,15 +72,6 @@ function ProductImageGallery({ images, style }: ProductImageGalleryProps) {
       {/* Thumbnail Gallery - Always show when multiple images */}
       {images.length > 1 && (
         <div>
-          <div style={{
-            textAlign: 'center',
-            fontSize: '0.875rem',
-            color: '#374151',
-            marginBottom: '0.75rem',
-            fontWeight: 600
-          }}>
-            商品图片 ({images.length} 张)
-          </div>
           <div style={{
             display: 'flex',
             gap: '0.75rem',
