@@ -47,12 +47,9 @@ function ClaudeApp() {
   const [customPageName, setCustomPageName] = useState('');
   const [publishedPages, setPublishedPages] = useState<string[]>([]);
   
-  // Product content form state
-  const [productContent, setProductContent] = useState('');
-  const [sourceUrl, setSourceUrl] = useState('');
-  const [imageUrls, setImageUrls] = useState('');
+  // Product URL form state - simplified
+  const [productUrl, setProductUrl] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [showBookmarkletTip, setShowBookmarkletTip] = useState(false);
   
   // Brand configuration
   const brandConfig = {
@@ -495,34 +492,33 @@ function ClaudeApp() {
     return BlobPublishService.validatePageName(name);
   };
 
-  // 处理商品文本内容生成导购页
-  const handleGenerateFromContent = async () => {
-    if (!productContent.trim()) return;
+  // 处理商品网址生成导购页 - 全自动流程
+  const handleGenerateFromUrl = async () => {
+    if (!productUrl.trim()) return;
     
     setIsGenerating(true);
     
     try {
-      const sourceText = sourceUrl.trim() ? `来源: ${sourceUrl}` : '用户提供的商品信息';
+      // 验证URL格式
+      const url = new URL(productUrl.trim());
       
       // 添加处理中消息到聊天
       const processingMsg: ChatMessage = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: `🔍 正在分析商品文本内容\n\n${sourceText}\n\n正在使用AI提取商品信息并生成导购页面...`,
+        content: `🔍 正在智能分析商品页面: ${url.href}\n\n🌐 步骤1: 抓取网页内容\n🤖 步骤2: AI提取商品信息\n🖼️ 步骤3: 处理商品图片\n📄 步骤4: 生成导购页面`,
         timestamp: Date.now()
       };
       setMessages(prev => [...prev, processingMsg]);
 
-      // 调用文本分析API
-      const response = await fetch('/api/analyze-product-text', {
+      // 调用前端网页抓取和AI分析API
+      const response = await fetch('/api/scrape-and-analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          textContent: productContent.trim(),
-          sourceUrl: sourceUrl.trim() || null,
-          imageUrls: imageUrls.trim() ? imageUrls.split('\n').map(url => url.trim()).filter(url => url) : []
+          url: productUrl.trim()
         })
       });
 
@@ -545,10 +541,8 @@ function ClaudeApp() {
         };
         setMessages(prev => [...prev, successMsg]);
         
-        // 清空内容输入
-        setProductContent('');
-        setSourceUrl('');
-        setImageUrls('');
+        // 清空URL输入
+        setProductUrl('');
       } else {
         throw new Error(result.message || '提取商品信息失败');
       }
@@ -765,125 +759,115 @@ function ClaudeApp() {
           <p style={{
             color: '#6b7280',
             fontSize: '0.875rem',
-            marginBottom: '1rem'
+            marginBottom: '1.5rem'
           }}>
-            复制粘贴商品页面内容，AI将自动分析并生成专业的导购页面
+            输入商品网址，系统将自动抓取并分析商品信息，智能生成专业导购页面
           </p>
           
           <div style={{
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            borderRadius: '6px',
-            padding: '0.75rem',
-            marginBottom: '1rem',
-            fontSize: '0.8rem',
-            color: '#64748b'
+            background: '#f0f9ff',
+            border: '1px solid #0ea5e9',
+            borderRadius: '8px',
+            padding: '1rem',
+            marginBottom: '1.5rem',
+            fontSize: '0.875rem',
+            color: '#0c4a6e'
           }}>
-            💡 <strong>使用技巧：</strong> 访问商品页面 → 全选复制文本内容 → 粘贴到下方文本框 → 点击生成
-            {showBookmarkletTip && (
-              <div style={{ marginTop: '0.5rem' }}>
-                📖 或使用书签工具: <button 
-                  onClick={() => setShowBookmarkletTip(false)}
-                  style={{
-                    background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', textDecoration: 'underline'
-                  }}
-                >
-                  收起
-                </button>
-              </div>
-            )}
+            🤖 <strong>智能分析流程：</strong> 输入网址 → 自动抓取 → AI分析 → 图片处理 → 生成导购页
+            <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', opacity: '0.8' }}>
+              ✨ 支持淘宝、京东、天猫、亚马逊等主流电商平台
+            </div>
           </div>
           
           <div style={{
-            maxWidth: '800px',
+            maxWidth: '600px',
             margin: '0 auto'
           }}>
-            <div style={{ marginBottom: '1rem' }}>
+            <div style={{
+              display: 'flex',
+              gap: '1rem',
+              alignItems: 'center'
+            }}>
               <input
                 type="url"
-                value={sourceUrl}
-                onChange={(e) => setSourceUrl(e.target.value)}
-                placeholder="商品页面网址（可选）"
+                value={productUrl}
+                onChange={(e) => setProductUrl(e.target.value)}
+                placeholder="https://www.taobao.com/product/123"
                 disabled={isGenerating}
                 style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '6px',
-                  fontSize: '0.9rem',
+                  flex: 1,
+                  padding: '1rem',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
                   outline: 'none',
                   transition: 'all 0.2s',
                   boxSizing: 'border-box'
                 }}
                 onFocus={(e) => {
                   e.target.style.borderColor = '#3b82f6';
-                  e.target.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
                 }}
                 onBlur={(e) => {
                   e.target.style.borderColor = '#e5e7eb';
                   e.target.style.boxShadow = 'none';
                 }}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !isGenerating && productUrl.trim()) {
+                    handleGenerateFromUrl();
+                  }
+                }}
               />
-            </div>
-            
-            <textarea
-              value={productContent}
-              onChange={(e) => setProductContent(e.target.value)}
-              placeholder="请将商品页面的文本内容粘贴在此处，包括商品名称、描述、价格、特点等..."
-              disabled={isGenerating}
-              rows={8}
-              style={{
-                width: '100%',
-                padding: '1rem',
-                border: '2px solid #e5e7eb',
-                borderRadius: '8px',
-                fontSize: '1rem',
-                outline: 'none',
-                transition: 'all 0.2s',
-                boxSizing: 'border-box',
-                fontFamily: 'inherit',
-                resize: 'vertical',
-                minHeight: '120px'
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = '#3b82f6';
-                e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = '#e5e7eb';
-                e.target.style.boxShadow = 'none';
-              }}
-            />
-            
-            <div style={{ marginTop: '1rem' }}>
-              <textarea
-                value={imageUrls}
-                onChange={(e) => setImageUrls(e.target.value)}
-                placeholder="商品图片网址（可选，每行一个）\nhttps://example.com/image1.jpg\nhttps://example.com/image2.jpg"
-                disabled={isGenerating}
-                rows={3}
+              
+              <button
+                onClick={handleGenerateFromUrl}
+                disabled={isGenerating || !productUrl.trim()}
                 style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '6px',
-                  fontSize: '0.9rem',
-                  outline: 'none',
+                  padding: '1rem 2rem',
+                  background: isGenerating || !productUrl.trim() ? '#9ca3af' : '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  cursor: isGenerating || !productUrl.trim() ? 'not-allowed' : 'pointer',
                   transition: 'all 0.2s',
-                  boxSizing: 'border-box',
-                  fontFamily: 'inherit',
-                  resize: 'vertical',
-                  minHeight: '80px'
+                  whiteSpace: 'nowrap',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
                 }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#3b82f6';
-                  e.target.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
+                onMouseOver={(e) => {
+                  if (!isGenerating && productUrl.trim()) {
+                    e.currentTarget.style.background = '#2563eb';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }
                 }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = '#e5e7eb';
-                  e.target.style.boxShadow = 'none';
+                onMouseOut={(e) => {
+                  if (!isGenerating && productUrl.trim()) {
+                    e.currentTarget.style.background = '#3b82f6';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }
                 }}
-              />
+              >
+                {isGenerating ? (
+                  <>
+                    <div style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid #ffffff40',
+                      borderTop: '2px solid #ffffff',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }}></div>
+                    分析中...
+                  </>
+                ) : (
+                  <>
+                    🤖 智能分析
+                  </>
+                )}
+              </button>
             </div>
             
             <div style={{
@@ -971,19 +955,22 @@ function ClaudeApp() {
             </button>
           </div>
           
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '1rem',
-            marginTop: '1rem',
-            fontSize: '0.75rem',
-            color: '#6b7280'
-          }}>
-            <span>✅ 支持淘宝</span>
-            <span>✅ 支持京东</span>
-            <span>✅ 支持天猫</span>
-            <span>✅ 支持其他电商</span>
-          </div>
+            
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '1.5rem',
+              marginTop: '1.5rem',
+              fontSize: '0.75rem',
+              color: '#6b7280'
+            }}>
+              <span>✅ 淘宝</span>
+              <span>✅ 京东</span>
+              <span>✅ 天猫</span>
+              <span>✅ 亚马逊</span>
+              <span>✅ 拼多多</span>
+              <span>✨ AI智能分析</span>
+            </div>
         </div>
       </div>
 
