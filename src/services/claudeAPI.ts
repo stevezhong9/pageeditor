@@ -107,22 +107,30 @@ ${JSON.stringify(currentPageData, null, 2)}
       ]
     };
 
+    // 在生产环境中使用 Vercel 函数代理避免 CORS 问题
+    const isProduction = !window.location.hostname.includes('localhost') && 
+                        !window.location.hostname.includes('127.0.0.1');
+    const apiUrl = isProduction ? '/api/claude' : this.baseURL;
+
     console.log('Making Claude API call...', {
-      url: this.baseURL,
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey.substring(0, 20) + '...',
-        'anthropic-version': '2023-06-01'
-      }
+      environment: isProduction ? 'production (using proxy)' : 'development (direct)',
+      url: apiUrl,
+      apiKey: this.apiKey.substring(0, 20) + '...'
     });
 
-    const response = await fetch(this.baseURL, {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+
+    // 只在开发环境直接调用时添加 API key headers
+    if (!isProduction) {
+      headers['x-api-key'] = this.apiKey;
+      headers['anthropic-version'] = '2023-06-01';
+    }
+
+    const response = await fetch(apiUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        'anthropic-version': '2023-06-01'
-      },
+      headers,
       body: JSON.stringify(requestBody)
     });
 
